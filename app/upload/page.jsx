@@ -152,40 +152,26 @@ export default function UploadPage() {
     })
   }
 
-  const mockUploadFile = (fileData) => {
-    return new Promise((resolve, reject) => {
-      const duration = Math.random() * 1200 + 800 // 0.8-2.0s
-      const shouldFail = Math.random() < 0.1 // 10% failure rate
-      let progress = 0
+  const uploadFileToVercel = async (fileData) => {
+    const formData = new FormData()
+    formData.append('file', fileData.file)
 
-      const interval = setInterval(() => {
-        progress += Math.random() * 30
-        if (progress > 100) progress = 100
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
 
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileData.id
-              ? { ...f, progress: Math.round(progress), status: progress === 100 ? "uploading" : "uploading" }
-              : f))
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Upload failed')
+      }
 
-        if (progress >= 100) {
-          clearInterval(interval)
-          setTimeout(() => {
-            if (shouldFail) {
-              setFiles((prev) => prev.map(
-                (f) => (f.id === fileData.id ? { ...f, status: "failed", progress: 0 } : f)
-              ))
-              reject(new Error("Upload failed"))
-            } else {
-              setFiles((prev) => prev.map(
-                (f) => (f.id === fileData.id ? { ...f, status: "done", progress: 100 } : f)
-              ))
-              resolve()
-            }
-          }, 200)
-        }
-      }, duration / 10)
-    });
+      const result = await response.json()
+      return result
+    } catch (error) {
+      throw error
+    }
   }
 
   const uploadAll = async () => {
@@ -196,9 +182,59 @@ export default function UploadPage() {
 
     const uploadPromises = files.map(async (fileData) => {
       try {
-        await mockUploadFile(fileData)
+        // Update status to uploading
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === fileData.id
+              ? { ...f, status: 'uploading', progress: 0 }
+              : f
+          )
+        )
+
+        // Simulate progress updates
+        const progressInterval = setInterval(() => {
+          setFiles((prev) =>
+            prev.map((f) =>
+              f.id === fileData.id
+                ? { ...f, progress: Math.min(f.progress + Math.random() * 20, 90) }
+                : f
+            )
+          )
+        }, 200)
+
+        // Upload to Vercel Blob
+        const result = await uploadFileToVercel(fileData)
+        
+        clearInterval(progressInterval)
+        
+        // Update with success
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === fileData.id
+              ? { 
+                  ...f, 
+                  status: 'done', 
+                  progress: 100,
+                  blobUrl: result.url,
+                  blobPathname: result.pathname,
+                  uploadedAt: result.uploadedAt
+                }
+              : f
+          )
+        )
+        
         setUploadStats((prev) => ({ ...prev, succeeded: prev.succeeded + 1 }))
       } catch (error) {
+        console.error(`Upload failed for ${fileData.name}:`, error)
+        
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === fileData.id
+              ? { ...f, status: 'failed', progress: 0, error: error.message }
+              : f
+          )
+        )
+        
         setUploadStats((prev) => ({ ...prev, failed: prev.failed + 1 }))
       }
     })
