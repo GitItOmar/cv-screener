@@ -2,6 +2,8 @@ import { ParserFactory } from '../../../lib/parsers/parserFactory.js';
 import { TextExtractor } from '../../../lib/extractors/textExtractor.js';
 import { llmExtractor } from '../../../lib/extractors/llmExtractor.js';
 import { dataValidator } from '../../../lib/validators/dataValidator.js';
+import fs from 'fs/promises';
+import path from 'path';
 
 export async function POST(request) {
   const startTime = Date.now();
@@ -11,7 +13,7 @@ export async function POST(request) {
     const formData = await request.formData();
 
     const file = formData.get('file');
-    const extractData = formData.get('extractData') === 'true'; // Optional parameter to control extraction
+    const extractData = true;
 
     if (!file) {
       console.warn('[UPLOAD] No file provided in request');
@@ -89,6 +91,11 @@ export async function POST(request) {
       response.extractedData = processedData.extractedData;
       response.validation = processedData.validation;
       response.processing.statistics = processedData.statistics;
+      response.debug = {
+        parsedText: processedData.debug?.parsedText,
+        cleanedText: processedData.debug?.cleanedText,
+        semanticStructure: processedData.debug?.semanticStructure,
+      };
     }
 
     console.info('[UPLOAD] Upload completed successfully:', {
@@ -146,7 +153,7 @@ function validateFile(file) {
 
   return {
     isValid: true,
-    extension: extension,
+    extension,
   };
 }
 
@@ -177,6 +184,37 @@ function validateMimeType(mimeType, extension) {
 }
 
 /**
+ * Write debug data to a temp file for inspection.
+ * @param {string} fileName - The base file name (for context)
+ * @param {string} stage - The processing stage (parsed, cleaned, semantic)
+ * @param {string|object} data - The data to write
+ */
+async function writeDebugTempFile(fileName, stage, data) {
+  try {
+    const safeName = fileName.replace(/[^a-zA-Z0-9_.-]/g, '_');
+    const timestamp = Date.now();
+    const ext = stage === 'semantic' ? 'json' : 'txt';
+    const tempDir = '/tmp';
+    const debugFileName = `${safeName}.${stage}.${timestamp}.${ext}`;
+    const debugFilePath = path.join(tempDir, debugFileName);
+
+    let content;
+    if (typeof data === 'object') {
+      content = JSON.stringify(data, null, 2);
+    } else {
+      content = String(data);
+    }
+
+    await fs.writeFile(debugFilePath, content, 'utf8');
+    console.info(`[UPLOAD][DEBUG] Saved ${stage} result to temp file: ${debugFilePath}`);
+    return debugFilePath;
+  } catch (err) {
+    console.warn(`[UPLOAD][DEBUG] Failed to write ${stage} debug file:`, err.message);
+    return null;
+  }
+}
+
+/**
  * Process file content and extract resume data
  * @param {File} file - File to process
  * @param {string} extension - File extension
@@ -195,6 +233,10 @@ async function processFileContent(file, extension) {
     console.info(`[UPLOAD] Parsing file with extension: .${extension}`);
     const rawText = await ParserFactory.parseFile(arrayBuffer, file.type, file.name);
 
+    // Save parsed text for debugging
+    const parsedText = rawText;
+    const parsedTextDebugPath = await writeDebugTempFile(file.name, 'parsed', parsedText);
+
     if (!rawText || rawText.trim().length === 0) {
       throw new Error('No text content could be extracted from the file');
     }
@@ -203,10 +245,18 @@ async function processFileContent(file, extension) {
 
     // Clean and prepare text for LLM processing
     const cleanedText = TextExtractor.cleanAndNormalize(rawText, extension);
+    // Save cleaned text for debugging
+    const cleanedTextDebugPath = await writeDebugTempFile(file.name, 'cleaned', cleanedText);
     console.debug('[UPLOAD] Text cleaned, final length:', cleanedText.length);
 
     // Extract semantic structure for additional metadata
     const semanticStructure = TextExtractor.extractSemanticStructure(cleanedText);
+    // Save semantic structure for debugging
+    const semanticStructureDebugPath = await writeDebugTempFile(
+      file.name,
+      'semantic',
+      semanticStructure,
+    );
 
     // Extract structured data using LLM
     console.info('[UPLOAD] Starting LLM extraction');
@@ -240,9 +290,17 @@ async function processFileContent(file, extension) {
         fileInfo: {
           name: file.name,
           size: file.size,
-          extension: extension,
+          extension,
           type: file.type,
         },
+      },
+      debug: {
+        parsedText,
+        parsedTextDebugPath,
+        cleanedText,
+        cleanedTextDebugPath,
+        semanticStructure,
+        semanticStructureDebugPath,
       },
     };
 
