@@ -71,69 +71,51 @@ const Toast = ({ toast, onDismiss, position = 'top-right' }) => {
   };
 
   return (
-    <div
-      className={cn(
-        'fixed z-50 max-w-sm w-full',
-        getPositionClasses(position)
-      )}
-    >
+    <div className={cn('fixed z-50 max-w-sm w-full', getPositionClasses(position))}>
       <div
         className={cn(
           'border rounded-lg shadow-lg p-4 transition-all duration-200 ease-in-out',
           'transform transition-all duration-200',
-          isVisible && !isExiting ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-2 opacity-0 scale-95',
+          isVisible && !isExiting
+            ? 'translate-y-0 opacity-100 scale-100'
+            : 'translate-y-2 opacity-0 scale-95',
           getVariantClasses(toast.variant),
-          'hover:shadow-xl'
+          'hover:shadow-xl',
         )}
-        role="alert"
-        aria-live="assertive"
-        aria-atomic="true"
+        role='alert'
+        aria-live='assertive'
+        aria-atomic='true'
       >
-        <div className="flex items-start gap-3">
+        <div className='flex items-start gap-3'>
           {/* Icon */}
-          <div className="flex-shrink-0 mt-0.5">
-            <ToastIcon 
-              variant={toast.variant} 
-              className={getIconColor(toast.variant)}
-            />
+          <div className='flex-shrink-0 mt-0.5'>
+            <ToastIcon variant={toast.variant} className={getIconColor(toast.variant)} />
           </div>
 
           {/* Content */}
-          <div className="flex-1 min-w-0">
-            {toast.title && (
-              <div className="font-semibold mb-1">
-                {toast.title}
-              </div>
-            )}
-            {toast.description && (
-              <div className="text-sm">
-                {toast.description}
-              </div>
-            )}
-            
+          <div className='flex-1 min-w-0'>
+            {toast.title && <div className='font-semibold mb-1'>{toast.title}</div>}
+            {toast.description && <div className='text-sm'>{toast.description}</div>}
+
             {/* Action */}
-            {toast.action && (
-              <div className="mt-3">
-                {toast.action}
-              </div>
-            )}
+            {toast.action && <div className='mt-3'>{toast.action}</div>}
           </div>
 
           {/* Dismiss button */}
           <button
             onClick={handleDismiss}
-            className="flex-shrink-0 ml-2 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-            aria-label="Dismiss notification"
+            className='flex-shrink-0 ml-2 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors'
+            aria-label='Dismiss notification'
           >
-            <X className="w-4 h-4" />
+            <X className='w-4 h-4' />
           </button>
         </div>
 
         {/* Progress bar for non-persistent toasts */}
         {!toast.persistent && toast.duration > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 rounded-b-lg overflow-hidden">
+          <div className='absolute bottom-0 left-0 right-0 h-1 bg-gray-200 rounded-b-lg overflow-hidden'>
             <div
-              className="h-full bg-current transition-all duration-linear"
+              className='h-full bg-current transition-all duration-linear'
               style={{
                 width: '100%',
                 transitionDuration: `${toast.duration}ms`,
@@ -146,8 +128,12 @@ const Toast = ({ toast, onDismiss, position = 'top-right' }) => {
 
       <style jsx>{`
         @keyframes shrink {
-          from { width: 100%; }
-          to { width: 0%; }
+          from {
+            width: 100%;
+          }
+          to {
+            width: 0%;
+          }
         }
       `}</style>
     </div>

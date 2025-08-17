@@ -12,14 +12,9 @@ const ToastContainer = ({ position = 'top-right', maxToasts = 5 }) => {
   }
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-50">
+    <div className='fixed inset-0 pointer-events-none z-50'>
       {visibleToasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          toast={toast}
-          onDismiss={dismissToast}
-          position={position}
-        />
+        <Toast key={toast.id} toast={toast} onDismiss={dismissToast} position={position} />
       ))}
     </div>
   );

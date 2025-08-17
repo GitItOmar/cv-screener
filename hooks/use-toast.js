@@ -118,9 +118,7 @@ export const useToast = () => {
    */
   const updateToast = useCallback((toastId, updates) => {
     setToasts((prevToasts) =>
-      prevToasts.map((toast) =>
-        toast.id === toastId ? { ...toast, ...updates } : toast
-      )
+      prevToasts.map((toast) => (toast.id === toastId ? { ...toast, ...updates } : toast)),
     );
   }, []);
 

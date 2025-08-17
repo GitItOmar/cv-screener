@@ -16,6 +16,7 @@ This is a CV screening application built with Next.js 15 and React 19. The appli
 ## Architecture
 
 ### Tech Stack
+
 - **Framework**: Next.js 15 with App Router (React 19)
 - **Styling**: Tailwind CSS 4 with shadcn/ui components
 - **State Management**: React hooks (useState, useEffect)
@@ -23,6 +24,7 @@ This is a CV screening application built with Next.js 15 and React 19. The appli
 - **Icons**: Lucide React
 
 ### Project Structure
+
 - `/app/` - Next.js App Router pages and API routes
   - `/upload/` - CV upload functionality with drag-and-drop
   - `/review/` - Candidate review interface with swipe controls
@@ -32,30 +34,35 @@ This is a CV screening application built with Next.js 15 and React 19. The appli
 - `/lib/` - Utility functions
 
 ### Key Features
+
 1. **Bulk CV Upload**: Supports PDF, DOC, DOCX, ZIP, CSV files up to 10MB each (max 200 files)
 2. **AI Pre-screening**: Mock scoring system (real implementation would integrate with AI service)
 3. **Swipe Review Interface**: Keyboard shortcuts (←/→ for reject/accept, U for undo, S for skip)
 4. **GDPR Compliance**: User consent checkbox and data protection features
 
 ### Component Architecture
+
 - Uses shadcn/ui component library with "new-york" style variant
 - Components are in JSX format (not TypeScript)
 - Tailwind CSS for styling with CSS variables
 - Responsive design with mobile drawer for candidate details
 
 ### State Management Patterns
+
 - Local component state with useState
 - Toast notifications via custom hook
 - File upload progress tracking
 - History tracking for undo functionality
 
 ### File Upload Flow
+
 1. Client-side validation (file type, size, duplicates)
 2. FormData submission to `/api/upload` endpoint
 3. Integration with Vercel Blob storage
 4. Progress tracking and error handling
 
 ### Important Notes
+
 - The app uses mock data for candidate reviews
 - Upload route exists but needs proper API implementation
 - No authentication system currently implemented
