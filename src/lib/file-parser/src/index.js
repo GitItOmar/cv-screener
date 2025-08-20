@@ -15,8 +15,8 @@
 // Export base parser for extending
 export { default as BaseParser } from './parsers/base.js';
 
-// Export individual parsers for advanced usage (when implemented)
-// export { default as PDFParser } from './parsers/pdf.js';
+// Export individual parsers for advanced usage
+export { default as PDFParser } from './parsers/pdf.js';
 // export { default as DOCXParser } from './parsers/docx.js';
 // export { default as CSVParser } from './parsers/csv.js';
 

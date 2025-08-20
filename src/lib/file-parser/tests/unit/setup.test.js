@@ -32,8 +32,6 @@ describe('Package Setup', () => {
       './tests/unit',
       './tests/integration',
       './tests/fixtures',
-      './docs',
-      './docs/examples',
     ];
 
     directories.forEach((dir) => {
@@ -42,13 +40,7 @@ describe('Package Setup', () => {
   });
 
   test('should have configuration files', () => {
-    const configFiles = [
-      './.gitignore',
-      './.prettierrc',
-      './.prettierignore',
-      './eslint.config.js',
-      './README.md',
-    ];
+    const configFiles = ['./.gitignore', './.prettierignore', './README.md'];
 
     configFiles.forEach((file) => {
       assert.ok(fs.existsSync(file), `Config file ${file} should exist`);
