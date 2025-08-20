@@ -445,9 +445,7 @@ export default function UploadPage() {
                                 </div>
 
                                 <div className='flex items-center space-x-3'>
-                                  <Badge
-                                    variant={getBadgeVariant(fileData.status)}
-                                  >
+                                  <Badge variant={getBadgeVariant(fileData.status)}>
                                     {fileData.status === 'done' && (
                                       <CheckCircle className='w-3 h-3 mr-1' />
                                     )}

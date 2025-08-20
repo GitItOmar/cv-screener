@@ -139,14 +139,17 @@ export const useToast = () => {
     return TOAST_POSITIONS[position] || TOAST_POSITIONS['top-right'];
   }, []);
 
-  return useMemo(() => ({
-    toasts,
-    toast,
-    dismissToast,
-    dismissAllToasts,
-    updateToast,
-    getToastPosition,
-  }), [toasts, toast, dismissToast, dismissAllToasts, updateToast, getToastPosition]);
+  return useMemo(
+    () => ({
+      toasts,
+      toast,
+      dismissToast,
+      dismissAllToasts,
+      updateToast,
+      getToastPosition,
+    }),
+    [toasts, toast, dismissToast, dismissAllToasts, updateToast, getToastPosition],
+  );
 };
 
 export default useToast;

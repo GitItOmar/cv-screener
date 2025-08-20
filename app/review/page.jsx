@@ -433,9 +433,11 @@ export default function ReviewPage() {
             <Skeleton className='h-10 w-32' />
           </div>
           <div className='flex gap-4 mb-8'>
-            {['skeleton-1', 'skeleton-2', 'skeleton-3', 'skeleton-4', 'skeleton-5'].map((skeletonId) => (
-              <Skeleton key={skeletonId} className='h-10 w-32' />
-            ))}
+            {['skeleton-1', 'skeleton-2', 'skeleton-3', 'skeleton-4', 'skeleton-5'].map(
+              (skeletonId) => (
+                <Skeleton key={skeletonId} className='h-10 w-32' />
+              ),
+            )}
           </div>
           <div className='flex gap-8'>
             <div className='flex-1'>

@@ -97,3 +97,8 @@ Thumbs.db
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+
+# Ignore Claude and GitHub workflow configuration files
+.claude/
+.github/workflows/claude-code-review.yml
+.github/workflows/claude.yml
