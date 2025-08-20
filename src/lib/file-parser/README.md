@@ -1,16 +1,16 @@
 # @screening/file-parser
 
-A comprehensive file parsing package for the CV screening application. This package provides a unified interface for parsing PDF, DOCX, and CSV files with robust error handling and metadata extraction.
+A comprehensive file parsing package for the CV screening application. This package provides a unified interface for parsing PDF and DOCX files with robust error handling and metadata extraction.
 
 ## Features
 
-- **Multi-format Support**: Parse PDF, DOCX, and CSV files
+- **Multi-format Support**: Parse PDF and DOCX files
 - **Unified API**: Consistent interface across all parsers
 - **Error Handling**: Comprehensive error reporting with context
 - **Metadata Extraction**: Extract document metadata and statistics
 - **Progress Reporting**: Track parsing progress for large files
 - **Type Detection**: Automatic file type detection
-- **Validation**: Built-in file validation and security checks
+- **Validation**: Built-in file validation
 
 ## Installation
 
@@ -61,11 +61,10 @@ if (result.success) {
 
 ## Supported File Formats
 
-| Format | Extension | Parser    | Description              |
-| ------ | --------- | --------- | ------------------------ |
-| PDF    | .pdf      | pdf2json  | Portable Document Format |
-| DOCX   | .docx     | mammoth   | Microsoft Word Document  |
-| CSV    | .csv      | csv-parse | Comma Separated Values   |
+| Format | Extension | Parser   | Description              |
+| ------ | --------- | -------- | ------------------------ |
+| PDF    | .pdf      | pdf2json | Portable Document Format |
+| DOCX   | .docx     | mammoth  | Microsoft Word Document  |
 
 ## API Reference
 
@@ -77,7 +76,7 @@ Parse a file and extract text content.
 
 - `file` (File | ArrayBuffer): File to parse
 - `options` (Object, optional): Parsing options
-  - `type` (string): Force specific parser ('pdf', 'docx', 'csv')
+  - `type` (string): Force specific parser ('pdf', 'docx')
   - `extractMetadata` (boolean): Extract file metadata (default: true)
   - `maxSize` (number): Maximum file size in bytes
   - `timeout` (number): Parsing timeout in milliseconds
@@ -140,8 +139,7 @@ src/
 ├── parsers/
 │   ├── base.js          # Base parser class
 │   ├── pdf.js           # PDF parser
-│   ├── docx.js          # DOCX parser
-│   └── csv.js           # CSV parser
+│   └── docx.js          # DOCX parser
 ├── utils/
 │   ├── fileType.js      # File type detection
 │   ├── validator.js     # File validation
@@ -225,14 +223,6 @@ try {
 }
 ```
 
-## Security Considerations
-
-- File type validation using magic numbers
-- Size limits to prevent memory exhaustion
-- Timeout handling for large files
-- Sanitization of extracted content
-- No execution of embedded scripts
-
 ## Performance
 
 - Streaming support for large files
@@ -257,7 +247,7 @@ MIT License - see LICENSE file for details
 ### v1.0.0
 
 - Initial release
-- Support for PDF, DOCX, and CSV parsing
+- Support for PDF and DOCX parsing
 - Unified API interface
 - Comprehensive error handling
 - Metadata extraction

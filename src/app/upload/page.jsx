@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-const ACCEPTED_TYPES = ['.pdf', '.doc', '.docx', '.zip', '.csv'];
+const ACCEPTED_TYPES = ['.pdf', '.doc', '.docx'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_FILES = 200;
 
@@ -366,8 +366,7 @@ export default function UploadPage() {
                 <CardHeader>
                   <CardTitle>Bulk upload CVs</CardTitle>
                   <CardDescription>
-                    Drop PDFs/DOCs or ZIP/CSV. We&apos;ll pre-screen with AI so you can review
-                    faster.
+                    Drop PDFs/DOCs. We&apos;ll pre-screen with AI so you can review faster.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className='space-y-6'>
@@ -388,7 +387,7 @@ export default function UploadPage() {
                       Drop files here or click to browse
                     </p>
                     <p className='text-sm text-gray-600 mb-4'>
-                      Supports PDF, DOC, DOCX, ZIP, CSV • Max 10MB per file • Up to 200 files
+                      Supports PDF, DOC, DOCX • Max 10MB per file • Up to 200 files
                     </p>
                     <Button onClick={() => fileInputRef.current?.click()} aria-label='Add files'>
                       Add files

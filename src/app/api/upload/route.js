@@ -102,7 +102,7 @@ export async function POST(request) {
  */
 function validateFile(file) {
   const maxSize = 10 * 1024 * 1024; // 10MB
-  const allowedExtensions = ['pdf', 'doc', 'docx', 'zip', 'csv'];
+  const allowedExtensions = ['pdf', 'doc', 'docx'];
 
   // Check file size
   if (file.size > maxSize) {
@@ -144,8 +144,6 @@ function validateMimeType(mimeType, extension) {
     pdf: ['application/pdf'],
     doc: ['application/msword'],
     docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-    csv: ['text/csv', 'application/csv', 'text/plain'],
-    zip: ['application/zip', 'application/x-zip-compressed'],
   };
 
   const allowedMimes = validMimeTypes[extension] || [];

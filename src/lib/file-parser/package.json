@@ -24,17 +24,16 @@
     "clean": "rm -rf node_modules dist coverage"
   },
   "dependencies": {
-    "pdf2json": "^3.2.0",
-    "mammoth": "^1.10.0",
-    "csv-parse": "^6.1.0",
     "file-type": "^19.0.0",
-    "p-timeout": "^6.1.2"
+    "mammoth": "^1.10.0",
+    "p-timeout": "^6.1.2",
+    "pdf2json": "^3.2.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.33.0",
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.1.8",
-    "prettier": "^3.6.2",
-    "@eslint/js": "^9.33.0"
+    "prettier": "^3.6.2"
   },
   "engines": {
     "node": ">=23.0.0"
@@ -43,7 +42,6 @@
     "file-parser",
     "pdf",
     "docx",
-    "csv",
     "document-processing",
     "text-extraction"
   ],

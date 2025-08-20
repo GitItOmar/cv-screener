@@ -21,30 +21,26 @@ export const SUPPORTED_TYPES = {
     parser: 'docx',
     maxSize: 25 * 1024 * 1024, // 25MB
   },
-  'text/csv': {
-    extensions: ['.csv'],
-    magicNumbers: null, // CSV has no magic number
-    parser: 'csv',
-    maxSize: 10 * 1024 * 1024, // 10MB
+  'application/vnd.ms-word.document.macroEnabled.12': {
+    extensions: ['.docm'],
+    magicNumbers: [0x50, 0x4b, 0x03, 0x04], // PK (ZIP header)
+    parser: 'docx',
+    maxSize: 25 * 1024 * 1024, // 25MB
   },
-  'application/csv': {
-    extensions: ['.csv'],
-    magicNumbers: null,
-    parser: 'csv',
-    maxSize: 10 * 1024 * 1024, // 10MB
-  },
-  // Test types for unit testing
+  // Test types for unit testing (excluded from public API)
   'text/plain': {
     extensions: ['.txt'],
     magicNumbers: null,
     parser: 'test',
     maxSize: 10 * 1024 * 1024, // 10MB
+    isTestType: true,
   },
   'application/test': {
     extensions: ['.test'],
     magicNumbers: null,
     parser: 'test',
     maxSize: 10 * 1024 * 1024, // 10MB
+    isTestType: true,
   },
 };
 
@@ -104,18 +100,6 @@ export async function detectFileType(input, filename = '') {
     }
   }
 
-  // Try content analysis for CSV
-  if (buffer.length > 0) {
-    const csvType = detectCSVByContent(buffer);
-    if (csvType) {
-      return {
-        ...csvType,
-        confidence: 'low',
-        method: 'content-analysis',
-      };
-    }
-  }
-
   throw new UnsupportedFormatError('Unable to determine file type', {
     detectedType: 'unknown',
     supportedTypes: Object.keys(SUPPORTED_TYPES),
@@ -169,45 +153,6 @@ function detectByExtension(filename) {
         parser: config.parser,
       };
     }
-  }
-
-  return null;
-}
-
-/**
- * Detect CSV by content analysis
- * @param {Buffer} buffer - File buffer
- * @returns {Object|null} File type or null
- */
-function detectCSVByContent(buffer) {
-  try {
-    const text = buffer.toString('utf8', 0, Math.min(1024, buffer.length));
-    const lines = text.split('\n').slice(0, 5); // Check first 5 lines
-
-    // Look for CSV patterns
-    const csvIndicators = [
-      /^[^,\n]*,[^,\n]*,/, // At least 2 commas per line
-      /^[^;\n]*;[^;\n]*;/, // Semicolon separated
-      /^[^\t\n]*\t[^\t\n]*\t/, // Tab separated
-    ];
-
-    let matchingLines = 0;
-    for (const line of lines) {
-      if (line.trim() && csvIndicators.some((pattern) => pattern.test(line))) {
-        matchingLines++;
-      }
-    }
-
-    // If most lines look like CSV, assume it's CSV
-    if (matchingLines >= Math.ceil(lines.length * 0.6)) {
-      return {
-        mimeType: 'text/csv',
-        extension: '.csv',
-        parser: 'csv',
-      };
-    }
-  } catch {
-    // Ignore content analysis errors
   }
 
   return null;
@@ -319,13 +264,13 @@ export async function validateFile(input, options = {}) {
     result.errors.push('File must have an extension');
   }
 
-  // Additional magic number validation for security
+  // Additional magic number validation
   if (checkMagicNumbers && result.fileType) {
     try {
       await validateMagicNumbers(buffer, result.fileType);
     } catch (error) {
       result.valid = false;
-      result.errors.push(`Security validation failed: ${error.message}`);
+      result.errors.push(`Magic number validation failed: ${error.message}`);
     }
   }
 
@@ -333,7 +278,7 @@ export async function validateFile(input, options = {}) {
 }
 
 /**
- * Validate magic numbers for security
+ * Validate magic numbers for file integrity
  * @param {Buffer} buffer - File buffer
  * @param {Object} fileType - Detected file type
  */
@@ -370,7 +315,9 @@ export function isSupported(mimeType) {
  * @returns {string[]} Array of supported MIME types
  */
 export function getSupportedTypes() {
-  return Object.keys(SUPPORTED_TYPES);
+  return Object.entries(SUPPORTED_TYPES)
+    .filter(([, config]) => !config.isTestType)
+    .map(([mimeType]) => mimeType);
 }
 
 /**
@@ -379,9 +326,11 @@ export function getSupportedTypes() {
  */
 export function getSupportedExtensions() {
   const extensions = new Set();
-  Object.values(SUPPORTED_TYPES).forEach((config) => {
-    config.extensions.forEach((ext) => extensions.add(ext));
-  });
+  Object.values(SUPPORTED_TYPES)
+    .filter((config) => !config.isTestType)
+    .forEach((config) => {
+      config.extensions.forEach((ext) => extensions.add(ext));
+    });
   return Array.from(extensions);
 }
 
@@ -393,4 +342,232 @@ export function getSupportedExtensions() {
 export function getParserForType(mimeType) {
   const config = SUPPORTED_TYPES[mimeType];
   return config ? config.parser : null;
+}
+
+/**
+ * Enhanced file type detection with multiple methods
+ * @param {ArrayBuffer|Buffer|File} input - File data
+ * @param {Object} options - Detection options
+ * @returns {Promise<Object>} Enhanced file type information
+ */
+export async function detectFileTypeEnhanced(input, options = {}) {
+  const {
+    useMultipleMethods = true,
+    requireMagicNumbers = false,
+    confidenceThreshold = 'medium', // 'low', 'medium', 'high'
+  } = options;
+
+  const results = {
+    detections: [],
+    consensus: null,
+    confidence: 'unknown',
+    recommendedParser: null,
+  };
+
+  try {
+    // Method 1: Magic number detection
+    const magicResult = await detectByMagicNumber(
+      Buffer.isBuffer(input)
+        ? input
+        : input instanceof File
+          ? Buffer.from(await input.arrayBuffer())
+          : Buffer.from(input),
+    );
+
+    if (magicResult) {
+      results.detections.push({
+        method: 'magic',
+        mimeType: magicResult.mimeType,
+        confidence: 'high',
+        parser: magicResult.parser,
+      });
+    }
+
+    if (useMultipleMethods) {
+      // Method 2: File-type library
+      try {
+        const buffer = Buffer.isBuffer(input)
+          ? input
+          : input instanceof File
+            ? Buffer.from(await input.arrayBuffer())
+            : Buffer.from(input);
+
+        const fileType = await fileTypeFromBuffer(buffer);
+        if (fileType && SUPPORTED_TYPES[fileType.mime]) {
+          results.detections.push({
+            method: 'file-type',
+            mimeType: fileType.mime,
+            confidence: 'high',
+            parser: SUPPORTED_TYPES[fileType.mime].parser,
+          });
+        }
+      } catch {
+        // Continue with other methods
+      }
+
+      // Method 3: Extension-based detection
+      const filename = input instanceof File ? input.name : '';
+      if (filename) {
+        const extensionResult = detectByExtension(filename);
+        if (extensionResult) {
+          results.detections.push({
+            method: 'extension',
+            mimeType: extensionResult.mimeType,
+            confidence: 'medium',
+            parser: extensionResult.parser,
+          });
+        }
+      }
+
+      // Method 4: Content analysis (removed - CSV detection not implemented)
+    }
+
+    // Determine consensus
+    results.consensus = determineConsensus(results.detections, { requireMagicNumbers });
+
+    // If no consensus found, provide default unknown result
+    if (!results.consensus) {
+      results.consensus = {
+        mimeType: 'application/octet-stream',
+        parser: 'unknown',
+        confidence: 'unknown',
+        method: 'fallback',
+      };
+    }
+
+    results.confidence = results.consensus.confidence || 'unknown';
+    results.recommendedParser = results.consensus.parser || null;
+
+    // Check confidence threshold
+    const confidenceLevels = { low: 1, medium: 2, high: 3 };
+    const requiredLevel = confidenceLevels[confidenceThreshold];
+    const actualLevel = confidenceLevels[results.confidence];
+
+    if (actualLevel < requiredLevel) {
+      throw new UnsupportedFormatError(
+        `File type detection confidence ${results.confidence} below threshold ${confidenceThreshold}`,
+        {
+          detections: results.detections,
+          confidence: results.confidence,
+          threshold: confidenceThreshold,
+        },
+      );
+    }
+
+    return results;
+  } catch (error) {
+    if (error instanceof UnsupportedFormatError) {
+      throw error;
+    }
+
+    throw new ValidationError(`Enhanced file type detection failed: ${error.message}`);
+  }
+}
+
+/**
+ * Determine consensus from multiple detection results
+ * @param {Array} detections - Array of detection results
+ * @param {Object} options - Consensus options
+ * @returns {Object|null} Consensus result
+ * @private
+ */
+function determineConsensus(detections, options = {}) {
+  if (detections.length === 0) {
+    return null;
+  }
+
+  const { requireMagicNumbers = false } = options;
+
+  // If magic numbers are required, prioritize those results
+  if (requireMagicNumbers) {
+    const magicResult = detections.find((d) => d.method === 'magic');
+    if (magicResult) {
+      return magicResult;
+    }
+    return null; // No magic number detection available
+  }
+
+  // Count votes for each parser/MIME type combination
+  const votes = {};
+  detections.forEach((detection) => {
+    const key = `${detection.parser}:${detection.mimeType}`;
+    if (!votes[key]) {
+      votes[key] = {
+        count: 0,
+        detection,
+        methods: [],
+        maxConfidence: 'low',
+      };
+    }
+
+    votes[key].count++;
+    votes[key].methods.push(detection.method);
+
+    // Update max confidence
+    const confidenceLevels = { low: 1, medium: 2, high: 3 };
+    if (confidenceLevels[detection.confidence] > confidenceLevels[votes[key].maxConfidence]) {
+      votes[key].maxConfidence = detection.confidence;
+    }
+  });
+
+  // Find the most voted result
+  const sortedVotes = Object.values(votes).sort((a, b) => {
+    // First sort by vote count
+    if (b.count !== a.count) {
+      return b.count - a.count;
+    }
+
+    // Then by confidence level
+    const confidenceLevels = { low: 1, medium: 2, high: 3 };
+    return confidenceLevels[b.maxConfidence] - confidenceLevels[a.maxConfidence];
+  });
+
+  const winner = sortedVotes[0];
+  return {
+    ...winner.detection,
+    confidence: winner.maxConfidence,
+    voteCount: winner.count,
+    methods: winner.methods,
+  };
+}
+
+/**
+ * Batch file type detection
+ * @param {Array} files - Array of file inputs
+ * @param {Object} options - Detection options
+ * @returns {Promise<Array>} Array of detection results
+ */
+export async function batchDetectFileType(files, options = {}) {
+  const { concurrency = 5, continueOnError = true } = options;
+
+  const results = [];
+
+  for (let i = 0; i < files.length; i += concurrency) {
+    const batch = files.slice(i, i + concurrency);
+
+    const batchPromises = batch.map(async (file, batchIndex) => {
+      const fileIndex = i + batchIndex;
+
+      try {
+        const detection = await detectFileType(file, options);
+        return { index: fileIndex, result: detection, error: null };
+      } catch (error) {
+        if (!continueOnError) {
+          throw error;
+        }
+        return { index: fileIndex, result: null, error };
+      }
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+    results.push(...batchResults);
+  }
+
+  // Sort by original index
+  results.sort((a, b) => a.index - b.index);
+
+  return results.map((r) => ({
+    result: r.result,
+    error: r.error,
+  }));
 }

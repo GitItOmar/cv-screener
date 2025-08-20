@@ -24,25 +24,14 @@ export default {
     convertTables: true,
   },
 
-  // CSV specific settings
-  csv: {
-    autoDetectDelimiter: true,
-    skipEmptyLines: true,
-    trimWhitespace: true,
-    maxColumns: 50,
-    maxRows: 10000,
-  },
-
   // Validation settings
   validation: {
     checkMagicNumbers: true,
     allowedMimeTypes: [
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/csv',
-      'application/csv',
     ],
-    allowedExtensions: ['.pdf', '.docx', '.csv'],
+    allowedExtensions: ['.pdf', '.docx'],
     maxFilenameLength: 255,
   },
 
