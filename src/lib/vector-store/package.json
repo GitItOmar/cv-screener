@@ -1,0 +1,45 @@
+{
+  "name": "@screening/vector-store",
+  "version": "1.0.0",
+  "description": "Vector store service for ChromaDB with OpenAI embeddings",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./src/*": "./src/*.js",
+    "./examples/*": "./examples/*.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "example": "node examples/usage.js",
+    "clean": "rm -rf node_modules dist coverage"
+  },
+  "dependencies": {
+    "chromadb": "^1.8.1",
+    "@chroma-core/openai": "^1.0.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "vector-store",
+    "chromadb",
+    "embeddings",
+    "openai",
+    "semantic-search",
+    "cv-screening"
+  ],
+  "author": "Screening Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GitItOmar/cv-screener.git",
+    "directory": "src/lib/vector-store"
+  },
+  "bugs": {
+    "url": "https://github.com/GitItOmar/cv-screener/issues"
+  },
+  "homepage": "https://github.com/GitItOmar/cv-screener/tree/main/src/lib/vector-store#readme"
+}

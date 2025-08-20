@@ -476,6 +476,8 @@ class GenericVectorStoreService {
   }
 }
 
-// Export singleton instance
-const genericVectorStore = new GenericVectorStoreService();
-export default genericVectorStore;
+// Export the class as default
+export default GenericVectorStoreService;
+
+// Also export a singleton instance for convenience
+export const vectorStoreInstance = new GenericVectorStoreService();

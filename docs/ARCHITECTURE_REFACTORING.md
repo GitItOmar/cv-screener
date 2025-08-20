@@ -264,27 +264,27 @@ Each feature in the `app/` directory follows the same 3-tier architecture:
 
 ### Current → New Location
 
-| Current File                         | New Location                                | Layer                   |
-| ------------------------------------ | ------------------------------------------- | ----------------------- |
-| `lib/parsers/pdfParser.js`           | `lib/parsers/pdf.js`                        | Shared Infrastructure   |
-| `lib/parsers/docxParser.js`          | `lib/parsers/docx.js`                       | Shared Infrastructure   |
-| `lib/parsers/csvParser.js`           | `lib/parsers/csv.js`                        | Shared Infrastructure   |
-| `lib/parsers/parserFactory.js`       | `lib/parsers/factory.js`                    | Shared Infrastructure   |
-| `lib/extractors/textExtractor.js`    | `app/extraction/domain/parser.js`           | Extraction Domain Layer |
-| `lib/extractors/llmExtractor.js`     | Split into:                                 |                         |
-|                                      | `lib/ai/openai.js`                          | Shared Infrastructure   |
-|                                      | `app/extraction/domain/llm.js`              | Extraction Domain Layer |
-| `lib/validators/dataValidator.js`    | `app/extraction/domain/transformer.js`      | Extraction Domain Layer |
-| `lib/agents/resumeAgent.js`          | `app/evaluation/domain/agents/resume.js`    | Evaluation Domain       |
-| `lib/agents/promptTemplates.js`      | `app/evaluation/domain/agents/templates.js` | Evaluation Domain       |
-| `lib/services/vectorStoreGeneric.js` | `lib/db/chromadb.js`                        | Shared Infrastructure   |
-| `lib/services/resumeVectorStore.js`  | `app/evaluation/data/vectors.js`            | Evaluation Data Layer   |
-| `components/ui/*`                    | `components/ui/*`                           | Keep in place           |
-| `hooks/use-toast.js`                 | `hooks/use-toast.js`                        | Keep in place           |
-| `lib/utils.js`                       | `lib/utils/formatters.js`                   | Shared Infrastructure   |
-| `app/upload/page.jsx`                | `app/upload/page.jsx`                       | Upload Entry Point      |
-| `app/review/page.jsx`                | `app/review/page.jsx`                       | Review Entry Point      |
-| `app/api/upload/route.js`            | `app/upload/api/route.js`                   | Upload Entry Point      |
+| Current File                         | New Location                                 | Layer                   |
+| ------------------------------------ | -------------------------------------------- | ----------------------- |
+| `lib/parsers/pdfParser.js`           | `lib/parsers/pdf.js`                         | Shared Infrastructure   |
+| `lib/parsers/docxParser.js`          | `lib/parsers/docx.js`                        | Shared Infrastructure   |
+| `lib/parsers/csvParser.js`           | `lib/parsers/csv.js`                         | Shared Infrastructure   |
+| `lib/parsers/parserFactory.js`       | `lib/parsers/factory.js`                     | Shared Infrastructure   |
+| `lib/extractors/textExtractor.js`    | `app/extraction/domain/parser.js`            | Extraction Domain Layer |
+| `lib/extractors/llmExtractor.js`     | Split into:                                  |                         |
+|                                      | `lib/ai/openai.js`                           | Shared Infrastructure   |
+|                                      | `app/extraction/domain/llm.js`               | Extraction Domain Layer |
+| `lib/validators/dataValidator.js`    | `app/extraction/domain/transformer.js`       | Extraction Domain Layer |
+| `lib/agents/resumeAgent.js`          | `app/evaluation/domain/agents/resume.js`     | Evaluation Domain       |
+| `lib/agents/promptTemplates.js`      | `app/evaluation/domain/agents/templates.js`  | Evaluation Domain       |
+| `lib/services/vectorStoreGeneric.js` | `lib/vector-store/src/VectorStoreService.js` | Shared Infrastructure   |
+| `lib/services/resumeVectorStore.js`  | `app/evaluation/data/vectors.js`             | Evaluation Data Layer   |
+| `components/ui/*`                    | `components/ui/*`                            | Keep in place           |
+| `hooks/use-toast.js`                 | `hooks/use-toast.js`                         | Keep in place           |
+| `lib/utils.js`                       | `lib/utils/formatters.js`                    | Shared Infrastructure   |
+| `app/upload/page.jsx`                | `app/upload/page.jsx`                        | Upload Entry Point      |
+| `app/review/page.jsx`                | `app/review/page.jsx`                        | Review Entry Point      |
+| `app/api/upload/route.js`            | `app/upload/api/route.js`                    | Upload Entry Point      |
 
 ## New Files to Create
 
