@@ -180,11 +180,14 @@ export function getFileExtension(filename) {
  */
 export async function validateFile(input, options = {}) {
   const {
-    maxSize = 10 * 1024 * 1024, // 10MB default
+    maxSize = 1024 * 1024, // 1MB default
     allowedTypes = Object.keys(SUPPORTED_TYPES),
     checkMagicNumbers = true,
     requireExtension = false,
   } = options;
+
+  // Ensure allowedTypes is always an array, never null
+  const safeAllowedTypes = allowedTypes || Object.keys(SUPPORTED_TYPES);
 
   const result = {
     valid: true,
@@ -235,7 +238,7 @@ export async function validateFile(input, options = {}) {
     result.fileType = fileType;
 
     // Check if type is allowed
-    if (!allowedTypes.includes(fileType.mimeType)) {
+    if (!safeAllowedTypes.includes(fileType.mimeType)) {
       result.valid = false;
       result.errors.push(`File type ${fileType.mimeType} is not allowed`);
     }

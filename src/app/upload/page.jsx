@@ -30,8 +30,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-const ACCEPTED_TYPES = ['.pdf', '.doc', '.docx'];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ACCEPTED_TYPES = ['.pdf', '.docx'];
+const MAX_FILE_SIZE = 1024 * 1024; // 1MB
 const MAX_FILES = 200;
 
 export default function UploadPage() {
@@ -63,7 +63,7 @@ export default function UploadPage() {
       return { valid: false, error: 'Unsupported file type' };
     }
     if (file.size > MAX_FILE_SIZE) {
-      return { valid: false, error: 'File too large (max 10MB)' };
+      return { valid: false, error: 'File too large (max 1MB)' };
     }
     return { valid: true };
   };

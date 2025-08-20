@@ -1,4 +1,4 @@
-import { ParserFactory } from '../../../lib/parsers/parserFactory.js';
+import FileParser from '../../../lib/file-parser/src/FileParser.js';
 import TextExtractor from '../../../lib/extractors/textExtractor.js';
 import { llmExtractor } from '../../../lib/extractors/llmExtractor.js';
 import { dataValidator } from '../../../lib/validators/dataValidator.js';
@@ -101,14 +101,14 @@ export async function POST(request) {
  * @returns {Object} - Validation result
  */
 function validateFile(file) {
-  const maxSize = 10 * 1024 * 1024; // 10MB
-  const allowedExtensions = ['pdf', 'doc', 'docx'];
+  const maxSize = 1024 * 1024; // 1MB - consistent with FileParser config
+  const allowedExtensions = ['pdf', 'docx']; // Removed 'doc' as FileParser doesn't support it
 
   // Check file size
   if (file.size > maxSize) {
     return {
       isValid: false,
-      error: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 10MB.`,
+      error: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 1MB.`,
     };
   }
 
@@ -142,8 +142,10 @@ function validateFile(file) {
 function validateMimeType(mimeType, extension) {
   const validMimeTypes = {
     pdf: ['application/pdf'],
-    doc: ['application/msword'],
-    docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    docx: [
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-word.document.macroEnabled.12',
+    ],
   };
 
   const allowedMimes = validMimeTypes[extension] || [];
@@ -166,14 +168,33 @@ async function processFileContent(file, extension) {
   const processingStartTime = Date.now();
 
   try {
-    // Convert file to ArrayBuffer
-    const arrayBuffer = await file.arrayBuffer();
+    // Create a FileParser instance with optimized settings for resume processing
+    const fileParser = new FileParser({
+      maxFileSize: 1024 * 1024, // 1MB for resumes
+      timeout: 45000, // 45 seconds
+      extractMetadata: true,
+      enableRecovery: true,
+      retryAttempts: 2,
+      allowPartialRecovery: true,
+      pdf: {
+        maxPages: 50, // Reasonable limit for resumes
+        cleanText: true,
+        normalizeText: true,
+      },
+      docx: {
+        preserveFormatting: false, // Focus on text content for LLM processing
+        includeHeaders: true,
+        includeFooters: false,
+        convertTables: true,
+      },
+    });
 
-    // Parse the file using the appropriate parser
-    const rawText = await ParserFactory.parseFile(arrayBuffer, file.type, file.name);
+    // Parse the file using the new FileParser
+    const parseResult = await fileParser.parse(file);
 
-    // Save parsed text for debugging
-    const parsedText = rawText;
+    // Extract text content from the comprehensive result
+    const rawText = parseResult.data?.text;
+    const parsedText = rawText; // Save for debugging
 
     if (!rawText || rawText.trim().length === 0) {
       throw new Error('No text content could be extracted from the file');
@@ -196,9 +217,10 @@ async function processFileContent(file, extension) {
     // Validate the extracted data
     const validationResult = await dataValidator.validateResumeData(extractedData);
 
-    // Get processing statistics
+    // Get processing statistics - combine FileParser stats with extraction stats
     const processingTime = Date.now() - processingStartTime;
     const extractionStats = llmExtractor.getExtractionStats();
+    const parserStats = fileParser.getStats();
 
     const result = {
       extractedData,
@@ -209,37 +231,84 @@ async function processFileContent(file, extension) {
         originalTextLength: rawText.length,
         semanticStructure,
         llmStats: extractionStats,
+        parser: {
+          // FileParser statistics
+          ...parserStats,
+          parsingTime: parseResult.processingTime,
+          success: parseResult.success,
+          parser: parseResult.parser,
+          quality: parseResult.quality,
+        },
         fileInfo: {
           name: file.name,
           size: file.size,
           extension,
           type: file.type,
+          // Enhanced file info from FileParser
+          ...parseResult.file,
         },
       },
       debug: {
         parsedText,
         cleanedText,
         semanticStructure,
+        // Additional debugging info from FileParser
+        parseResult: {
+          success: parseResult.success,
+          parser: parseResult.parser,
+          processingTime: parseResult.processingTime,
+          quality: parseResult.quality,
+          validation: parseResult.validation,
+          performance: parseResult.performance,
+        },
       },
     };
 
     return result;
   } catch (error) {
-    // Provide more specific error messages
+    // Enhanced error handling with FileParser errors
+    // Log error for debugging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('File processing error:', error);
+    }
+
+    // Check if it's a FileParser error with user-friendly messages
+    if (error.getUserMessage && typeof error.getUserMessage === 'function') {
+      // Use the FileParser's user-friendly error message
+      throw new Error(error.getUserMessage());
+    }
+
+    // Handle specific error types
+    if (error.code) {
+      switch (error.code) {
+        case 'UNSUPPORTED_FORMAT':
+          throw new Error(`Unsupported file format. Please upload a PDF or DOCX file.`);
+        case 'FILE_SIZE_EXCEEDED':
+          throw new Error('File is too large. Please upload a file smaller than 1MB.');
+        case 'PARSE_TIMEOUT':
+          throw new Error('File processing timed out. Please try with a smaller file.');
+        case 'CORRUPTED_FILE':
+          throw new Error(
+            'The file appears to be corrupted or damaged. Please try with a different file.',
+          );
+        case 'VALIDATION_FAILED':
+          throw new Error(
+            'File validation failed. Please ensure the file is not password-protected.',
+          );
+        default:
+          break;
+      }
+    }
+
+    // Fallback error handling for non-FileParser errors
     if (error.message.includes('No text content')) {
       throw new Error('The file appears to be empty or contains no readable text content');
-    } else if (error.message.includes('Invalid PDF')) {
-      throw new Error('The PDF file is corrupted or password-protected');
-    } else if (error.message.includes('Invalid or corrupted')) {
-      throw new Error(
-        `The ${extension.toUpperCase()} file is corrupted or in an unsupported format`,
-      );
     } else if (error.message.includes('rate limit')) {
       throw new Error('AI processing service is temporarily unavailable. Please try again later.');
     } else if (error.message.includes('API quota')) {
       throw new Error('AI processing quota exceeded. Please contact support.');
     } else {
-      throw new Error(`File processing failed: ${error.message}`);
+      throw new Error(`Failed to process file: ${error.message}`);
     }
   }
 }

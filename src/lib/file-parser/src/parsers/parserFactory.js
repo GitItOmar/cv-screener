@@ -66,13 +66,15 @@ export default class ParserFactory {
         });
 
         if (!validationResult.valid) {
-          throw new ValidationError(
-            `File validation failed: ${validationResult.errors.join(', ')}`,
-            {
-              validationErrors: validationResult.errors,
-              validationWarnings: validationResult.warnings,
-            },
-          );
+          // Safely handle validation errors that might be null or contain null values
+          const safeErrors = (validationResult.errors || []).filter((error) => error != null);
+          const errorMessage =
+            safeErrors.length > 0 ? safeErrors.join(', ') : 'File validation failed';
+
+          throw new ValidationError(`File validation failed: ${errorMessage}`, {
+            validationErrors: safeErrors,
+            validationWarnings: validationResult.warnings || [],
+          });
         }
       }
 

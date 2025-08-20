@@ -148,10 +148,15 @@ export default class BaseParser {
       // Step 1: Validate input
       const validation = await this.validate(input, mergedOptions);
       if (!validation.valid) {
-        throw new ValidationError(`File validation failed: ${validation.errors.join(', ')}`, {
+        // Safely handle validation errors that might be null or contain null values
+        const safeErrors = (validation.errors || []).filter((error) => error != null);
+        const errorMessage =
+          safeErrors.length > 0 ? safeErrors.join(', ') : 'File validation failed';
+
+        throw new ValidationError(`File validation failed: ${errorMessage}`, {
           parser: this.constructor.parserName,
-          validationErrors: validation.errors,
-          validationWarnings: validation.warnings,
+          validationErrors: safeErrors,
+          validationWarnings: validation.warnings || [],
         });
       }
 
