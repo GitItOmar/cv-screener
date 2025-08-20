@@ -2,8 +2,6 @@ import { ParserFactory } from '../../../lib/parsers/parserFactory.js';
 import { TextExtractor } from '../../../lib/extractors/textExtractor.js';
 import { llmExtractor } from '../../../lib/extractors/llmExtractor.js';
 import { dataValidator } from '../../../lib/validators/dataValidator.js';
-import fs from 'fs/promises';
-import path from 'path';
 
 export async function POST(request) {
   const startTime = Date.now();
@@ -161,31 +159,6 @@ function validateMimeType(mimeType, extension) {
 }
 
 /**
- * Write debug data to a temp file for inspection in the project root.
- * @param {string} fileName - The base file name (for context)
- * @param {string} stage - The processing stage (parsed, cleaned, semantic)
- * @param {string|object} data - The data to write
- */
-const writeDebugTempFile = async (fileName, stage, data) => {
-  try {
-    const safeName = fileName.replace(/[^a-zA-Z0-9_.-]/g, '_');
-    const timestamp = Date.now();
-    const ext = stage === 'semantic' ? 'json' : 'txt';
-    // Write to project root instead of /tmp
-    const projectRoot = process.cwd();
-    const debugFileName = `${safeName}.${stage}.${timestamp}.${ext}`;
-    const debugFilePath = path.join(projectRoot, debugFileName);
-
-    const content = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data);
-
-    await fs.writeFile(debugFilePath, content, 'utf8');
-    return debugFilePath;
-  } catch {
-    return null;
-  }
-};
-
-/**
  * Process file content and extract resume data
  * @param {File} file - File to process
  * @param {string} extension - File extension
@@ -203,7 +176,6 @@ async function processFileContent(file, extension) {
 
     // Save parsed text for debugging
     const parsedText = rawText;
-    const parsedTextDebugPath = await writeDebugTempFile(file.name, 'parsed', parsedText);
 
     if (!rawText || rawText.trim().length === 0) {
       throw new Error('No text content could be extracted from the file');
@@ -211,17 +183,9 @@ async function processFileContent(file, extension) {
 
     // Clean and prepare text for LLM processing
     const cleanedText = TextExtractor.cleanAndNormalize(rawText, extension);
-    // Save cleaned text for debugging
-    const cleanedTextDebugPath = await writeDebugTempFile(file.name, 'cleaned', cleanedText);
 
     // Extract semantic structure for additional metadata
     const semanticStructure = TextExtractor.extractSemanticStructure(cleanedText);
-    // Save semantic structure for debugging
-    const semanticStructureDebugPath = await writeDebugTempFile(
-      file.name,
-      'semantic',
-      semanticStructure,
-    );
 
     // Extract structured data using LLM
     const extractedData = await llmExtractor.extractResumeData(cleanedText, {
@@ -256,11 +220,8 @@ async function processFileContent(file, extension) {
       },
       debug: {
         parsedText,
-        parsedTextDebugPath,
         cleanedText,
-        cleanedTextDebugPath,
         semanticStructure,
-        semanticStructureDebugPath,
       },
     };
 

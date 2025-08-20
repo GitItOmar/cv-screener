@@ -3,10 +3,10 @@ import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 
 export const metadata = {
-  title: 'Join Our Team - Career Opportunities',
+  title: 'CV Screener - AI-Powered Candidate Screening',
   description:
-    'Apply now to join our talented team. Upload your CV and start your journey with us today.',
-  generator: 'v0.dev',
+    'Bulk upload CVs, leverage AI for pre-screening, and review candidates efficiently. Secure, fast, and GDPR-compliant CV screening for modern teams.',
+  generator: 'Next.js 15',
 };
 
 export default function RootLayout({ children }) {
