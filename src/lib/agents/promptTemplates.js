@@ -1,4 +1,4 @@
-export class PromptTemplates {
+class PromptTemplates {
   /**
    * Get system prompt for resume data extraction
    * @returns {string} - Detailed system prompt

@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 
-export class ResumeAgent {
+class ResumeAgent {
   constructor() {
     this.client = null;
     this.costTracker = {
@@ -349,4 +349,3 @@ Return only the JSON object with the extracted information.`;
 
 // Export singleton instance
 export const resumeAgent = new ResumeAgent();
-export default resumeAgent;

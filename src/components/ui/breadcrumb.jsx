@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
-import { ChevronRight, MoreHorizontal } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
@@ -70,21 +70,6 @@ function BreadcrumbSeparator({ children, className, ...props }) {
   );
 }
 
-function BreadcrumbEllipsis({ className, ...props }) {
-  return (
-    <span
-      data-slot='breadcrumb-ellipsis'
-      role='presentation'
-      aria-hidden='true'
-      className={cn('flex size-9 items-center justify-center', className)}
-      {...props}
-    >
-      <MoreHorizontal className='size-4' />
-      <span className='sr-only'>More</span>
-    </span>
-  );
-}
-
 export {
   Breadcrumb,
   BreadcrumbList,
@@ -92,5 +77,4 @@ export {
   BreadcrumbLink,
   BreadcrumbPage,
   BreadcrumbSeparator,
-  BreadcrumbEllipsis,
 };

@@ -1,4 +1,4 @@
-export class TextExtractor {
+class TextExtractor {
   /**
    * Clean and normalize extracted text from various sources
    * @param {string} rawText - Raw text extracted from document

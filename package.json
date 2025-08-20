@@ -61,6 +61,9 @@
     ],
     "*.{json,md,css,scss,html}": [
       "prettier --write"
+    ],
+    "{src/**/*.{js,jsx,ts,tsx},*.js,*.mjs}": [
+      "bash -c 'npm run knip'"
     ]
   }
 }

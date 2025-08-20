@@ -1,4 +1,4 @@
-export class PDFParser {
+class PDFParser {
   /**
    * Parse PDF file and extract text content
    * @param {ArrayBuffer} buffer - PDF file buffer
@@ -211,4 +211,4 @@ export class PDFParser {
   }
 }
 
-export default PDFParser;
+export { PDFParser };

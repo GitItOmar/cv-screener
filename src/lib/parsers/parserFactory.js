@@ -138,5 +138,3 @@ export class ParserFactory {
     return Object.keys(this.SUPPORTED_EXTENSIONS);
   }
 }
-
-export default ParserFactory;

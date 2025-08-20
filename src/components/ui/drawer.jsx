@@ -13,14 +13,6 @@ function DrawerTrigger({ ...props }) {
   return <DrawerPrimitive.Trigger data-slot='drawer-trigger' {...props} />;
 }
 
-function DrawerPortal({ ...props }) {
-  return <DrawerPrimitive.Portal data-slot='drawer-portal' {...props} />;
-}
-
-function DrawerClose({ ...props }) {
-  return <DrawerPrimitive.Close data-slot='drawer-close' {...props} />;
-}
-
 function DrawerOverlay({ className, ...props }) {
   return (
     <DrawerPrimitive.Overlay
@@ -32,6 +24,10 @@ function DrawerOverlay({ className, ...props }) {
       {...props}
     />
   );
+}
+
+function DrawerPortal({ ...props }) {
+  return <DrawerPrimitive.Portal data-slot='drawer-portal' {...props} />;
 }
 
 function DrawerContent({ className, children, ...props }) {
@@ -70,16 +66,6 @@ function DrawerHeader({ className, ...props }) {
   );
 }
 
-function DrawerFooter({ className, ...props }) {
-  return (
-    <div
-      data-slot='drawer-footer'
-      className={cn('mt-auto flex flex-col gap-2 p-4', className)}
-      {...props}
-    />
-  );
-}
-
 function DrawerTitle({ className, ...props }) {
   return (
     <DrawerPrimitive.Title
@@ -90,25 +76,4 @@ function DrawerTitle({ className, ...props }) {
   );
 }
 
-function DrawerDescription({ className, ...props }) {
-  return (
-    <DrawerPrimitive.Description
-      data-slot='drawer-description'
-      className={cn('text-muted-foreground text-sm', className)}
-      {...props}
-    />
-  );
-}
-
-export {
-  Drawer,
-  DrawerPortal,
-  DrawerOverlay,
-  DrawerTrigger,
-  DrawerClose,
-  DrawerContent,
-  DrawerHeader,
-  DrawerFooter,
-  DrawerTitle,
-  DrawerDescription,
-};
+export { Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerTitle };

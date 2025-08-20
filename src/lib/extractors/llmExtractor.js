@@ -2,7 +2,7 @@ import { resumeAgent } from '../agents/resumeAgent.js';
 import PromptTemplates from '../agents/promptTemplates.js';
 import TextExtractor from './textExtractor.js';
 
-export class LLMExtractor {
+class LLMExtractor {
   constructor() {
     this.agent = resumeAgent;
     this.extractionOptions = {
@@ -518,4 +518,3 @@ export class LLMExtractor {
 
 // Export singleton instance
 export const llmExtractor = new LLMExtractor();
-export default llmExtractor;

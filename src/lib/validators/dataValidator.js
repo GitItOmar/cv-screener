@@ -1,4 +1,4 @@
-export class DataValidator {
+class DataValidator {
   constructor() {
     this.validationRules = {
       email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
@@ -778,4 +778,3 @@ export class DataValidator {
 
 // Export singleton instance
 export const dataValidator = new DataValidator();
-export default dataValidator;

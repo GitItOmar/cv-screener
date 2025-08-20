@@ -1,6 +1,6 @@
 import { parse } from 'csv-parse/sync';
 
-export class CSVParser {
+class CSVParser {
   /**
    * Parse CSV file and extract candidate data
    * @param {ArrayBuffer} buffer - CSV file buffer

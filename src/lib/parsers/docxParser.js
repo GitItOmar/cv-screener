@@ -1,6 +1,6 @@
 import mammoth from 'mammoth';
 
-export class DOCXParser {
+class DOCXParser {
   /**
    * Parse DOCX file and extract text content
    * @param {ArrayBuffer} buffer - DOCX file buffer
