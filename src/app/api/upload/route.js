@@ -1,5 +1,5 @@
 import { ParserFactory } from '../../../lib/parsers/parserFactory.js';
-import { TextExtractor } from '../../../lib/extractors/textExtractor.js';
+import TextExtractor from '../../../lib/extractors/textExtractor.js';
 import { llmExtractor } from '../../../lib/extractors/llmExtractor.js';
 import { dataValidator } from '../../../lib/validators/dataValidator.js';
 

@@ -2,5 +2,6 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "paths": {
     "@/*": ["./src/*"]
-  }
+  },
+  "ignoreDependencies": ["tw-animate-css"]
 }
