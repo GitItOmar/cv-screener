@@ -9,8 +9,11 @@
  * @version 1.0.0
  */
 
-// Export main class as default (when implemented)
-// export { default } from './FileParser.js';
+// Export main FileParser class as default
+export { default } from './FileParser.js';
+
+// Export main class as named export for convenience
+export { default as FileParser } from './FileParser.js';
 
 // Export base parser for extending
 export { default as BaseParser } from './parsers/base.js';
