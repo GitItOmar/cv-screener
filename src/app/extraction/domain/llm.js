@@ -1,6 +1,6 @@
-import { resumeAgent } from '../agents/resumeAgent.js';
-import PromptTemplates from '../agents/promptTemplates.js';
-import TextExtractor from './textExtractor.js';
+import { resumeAgent } from '../../../lib/agents/resumeAgent.js';
+import PromptTemplates from '../../../lib/agents/promptTemplates.js';
+import TextExtractor from './parser.js';
 
 class LLMExtractor {
   constructor() {
