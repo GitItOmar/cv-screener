@@ -1,5 +1,6 @@
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
+import { ToastProvider } from '@/components/ui/toast-provider';
 import './globals.css';
 
 export const metadata = {
@@ -21,7 +22,9 @@ html {
 }
         `}</style>
       </head>
-      <body>{children}</body>
+      <body>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

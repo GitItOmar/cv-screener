@@ -170,17 +170,6 @@ export default function UploadPage() {
     toast({
       title: 'File removed',
       description: `${fileToRemove.name} was removed`,
-      action: (
-        <Button
-          variant='outline'
-          size='sm'
-          onClick={() => {
-            setFiles((prev) => [...prev, fileToRemove]);
-          }}
-        >
-          Undo
-        </Button>
-      ),
     });
   };
 
