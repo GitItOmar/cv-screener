@@ -1,0 +1,61 @@
+{
+  "name": "@screening/file-parser",
+  "version": "1.0.0",
+  "description": "File parsing utilities for CV screening application",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./parsers/*": "./src/parsers/*.js",
+    "./utils/*": "./src/utils/*.js"
+  },
+  "scripts": {
+    "test": "node --test tests/**/*.test.js",
+    "test:unit": "node --test tests/unit/*.test.js",
+    "test:integration": "node --test tests/integration/*.test.js",
+    "test:watch": "node --test --watch tests/**/*.test.js",
+    "lint": "eslint src tests",
+    "lint:fix": "eslint src tests --fix",
+    "format": "prettier --write src tests docs",
+    "format:check": "prettier --check src tests docs",
+    "build": "echo 'No build step required for ES modules'",
+    "dev": "node --watch src/index.js",
+    "clean": "rm -rf node_modules dist coverage"
+  },
+  "dependencies": {
+    "pdf2json": "^3.2.0",
+    "mammoth": "^1.10.0",
+    "csv-parse": "^6.1.0",
+    "file-type": "^19.0.0",
+    "p-timeout": "^6.1.2"
+  },
+  "devDependencies": {
+    "eslint": "^9.33.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.6.2",
+    "@eslint/js": "^9.33.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "file-parser",
+    "pdf",
+    "docx",
+    "csv",
+    "document-processing",
+    "text-extraction"
+  ],
+  "author": "Screening Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GitItOmar/cv-screener.git",
+    "directory": "packages/file-parser"
+  },
+  "bugs": {
+    "url": "https://github.com/GitItOmar/cv-screener/issues"
+  },
+  "homepage": "https://github.com/GitItOmar/cv-screener/tree/main/packages/file-parser#readme"
+}
