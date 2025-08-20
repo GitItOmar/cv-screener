@@ -226,7 +226,7 @@ export default function HomePage() {
             <AccordionItem value='security'>
               <AccordionTrigger>Is data secure/GDPR compliant?</AccordionTrigger>
               <AccordionContent>
-                Absolutely. We're fully GDPR compliant with end-to-end encryption, automatic data
+                Absolutely. We&apos;re fully GDPR compliant with end-to-end encryption, automatic data
                 deletion policies, and comprehensive audit trails. Your candidate data is never
                 shared or used for training.
               </AccordionContent>

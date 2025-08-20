@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 
 // Toast types and their default configurations
 const TOAST_TYPES = {
@@ -24,20 +24,37 @@ const TOAST_TYPES = {
   },
 };
 
+// Toast position configurations
+const TOAST_POSITIONS = {
+  'top-left': 'top-4 left-4',
+  'top-center': 'top-4 left-1/2 transform -translate-x-1/2',
+  'top-right': 'top-4 right-4',
+  'bottom-left': 'bottom-4 left-4',
+  'bottom-center': 'bottom-4 left-1/2 transform -translate-x-1/2',
+  'bottom-right': 'bottom-4 right-4',
+};
+
 /**
  * Custom hook for managing toast notifications
  * @returns {Object} Toast management functions and state
  */
 export const useToast = () => {
   const [toasts, setToasts] = useState([]);
-  const toastRefs = useRef(new Map());
+
+  /**
+   * Remove a specific toast by ID
+   * @param {string} toastId - ID of the toast to dismiss
+   */
+  const dismissToast = useCallback((toastId) => {
+    setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== toastId));
+  }, []);
 
   // Auto-dismiss toasts based on their duration
   useEffect(() => {
     const timeouts = new Map();
 
     toasts.forEach((toast) => {
-      if (toast.duration && toast.duration > 0) {
+      if (toast.duration && toast.duration > 0 && !timeouts.has(toast.id)) {
         const timeout = setTimeout(() => {
           dismissToast(toast.id);
         }, toast.duration);
@@ -48,7 +65,7 @@ export const useToast = () => {
     return () => {
       timeouts.forEach((timeout) => clearTimeout(timeout));
     };
-  }, [toasts]);
+  }, [toasts, dismissToast]);
 
   /**
    * Add a new toast notification
@@ -76,7 +93,7 @@ export const useToast = () => {
     }
 
     const toastConfig = TOAST_TYPES[variant] || TOAST_TYPES.default;
-    const toastId = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const toastId = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 
     const newToast = {
       id: toastId,
@@ -93,14 +110,6 @@ export const useToast = () => {
 
     setToasts((prevToasts) => [...prevToasts, newToast]);
     return toastId;
-  }, []);
-
-  /**
-   * Remove a specific toast by ID
-   * @param {string} toastId - ID of the toast to dismiss
-   */
-  const dismissToast = useCallback((toastId) => {
-    setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== toastId));
   }, []);
 
   /**
@@ -127,26 +136,17 @@ export const useToast = () => {
    * @returns {Object} Position styles
    */
   const getToastPosition = useCallback((position = 'top-right') => {
-    const positions = {
-      'top-left': 'top-4 left-4',
-      'top-center': 'top-4 left-1/2 transform -translate-x-1/2',
-      'top-right': 'top-4 right-4',
-      'bottom-left': 'bottom-4 left-4',
-      'bottom-center': 'bottom-4 left-1/2 transform -translate-x-1/2',
-      'bottom-right': 'bottom-4 right-4',
-    };
-
-    return positions[position] || positions['top-right'];
+    return TOAST_POSITIONS[position] || TOAST_POSITIONS['top-right'];
   }, []);
 
-  return {
+  return useMemo(() => ({
     toasts,
     toast,
     dismissToast,
     dismissAllToasts,
     updateToast,
     getToastPosition,
-  };
+  }), [toasts, toast, dismissToast, dismissAllToasts, updateToast, getToastPosition]);
 };
 
 export default useToast;

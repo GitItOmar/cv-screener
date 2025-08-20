@@ -1,7 +1,7 @@
 import { useToast } from '@/hooks/use-toast';
 import Toast from './toast';
 
-const ToastContainer = ({ position = 'top-right', maxToasts = 5 }) => {
+function ToastContainer({ position = 'top-right', maxToasts = 5 }) {
   const { toasts, dismissToast } = useToast();
 
   // Limit the number of visible toasts
@@ -18,6 +18,6 @@ const ToastContainer = ({ position = 'top-right', maxToasts = 5 }) => {
       ))}
     </div>
   );
-};
+}
 
 export default ToastContainer;

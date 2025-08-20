@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -251,8 +251,8 @@ function CandidateDetails({ candidate }) {
             Key Achievements
           </h4>
           <ul className='space-y-2'>
-            {candidate.achievements.map((achievement, index) => (
-              <li key={index} className='flex items-start gap-2'>
+            {candidate.achievements.map((achievement) => (
+              <li key={achievement} className='flex items-start gap-2'>
                 <Star className='w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0' />
                 <span className='text-sm'>{achievement}</span>
               </li>
@@ -320,7 +320,7 @@ export default function ReviewPage() {
 
   const { toast } = useToast();
 
-  const handleReject = () => {
+  const handleReject = useCallback(() => {
     if (!currentCandidate) return;
 
     setRejected((prev) => [...prev, currentCandidate]);
@@ -336,9 +336,9 @@ export default function ReviewPage() {
     }
 
     toast({ description: `${currentCandidate.name} rejected` });
-  };
+  }, [currentCandidate, currentIndex, filteredCandidates.length, toast]);
 
-  const handleShortlist = () => {
+  const handleShortlist = useCallback(() => {
     if (!currentCandidate) return;
 
     setShortlisted((prev) => [...prev, currentCandidate]);
@@ -354,9 +354,9 @@ export default function ReviewPage() {
     }
 
     toast({ description: `${currentCandidate.name} shortlisted` });
-  };
+  }, [currentCandidate, currentIndex, filteredCandidates.length, toast]);
 
-  const handleSkip = () => {
+  const handleSkip = useCallback(() => {
     if (!currentCandidate) return;
 
     if (currentIndex < filteredCandidates.length - 1) {
@@ -366,9 +366,9 @@ export default function ReviewPage() {
     }
 
     toast({ description: `Skipped ${currentCandidate.name}` });
-  };
+  }, [currentCandidate, currentIndex, filteredCandidates.length, toast]);
 
-  const handleUndo = () => {
+  const handleUndo = useCallback(() => {
     if (history.length === 0) return;
 
     const lastAction = history[history.length - 1];
@@ -384,7 +384,7 @@ export default function ReviewPage() {
     setShowConfetti(false);
 
     toast({ description: `Undid action for ${lastAction.candidate.name}` });
-  };
+  }, [history, toast]);
 
   const resetFilters = () => {
     setRoleFilter('all');
@@ -433,8 +433,8 @@ export default function ReviewPage() {
             <Skeleton className='h-10 w-32' />
           </div>
           <div className='flex gap-4 mb-8'>
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className='h-10 w-32' />
+            {['skeleton-1', 'skeleton-2', 'skeleton-3', 'skeleton-4', 'skeleton-5'].map((skeletonId) => (
+              <Skeleton key={skeletonId} className='h-10 w-32' />
             ))}
           </div>
           <div className='flex gap-8'>
@@ -456,7 +456,7 @@ export default function ReviewPage() {
         <div className='text-center space-y-6'>
           <div className='text-6xl'>🎉</div>
           <h1 className='text-3xl font-bold'>All Done!</h1>
-          <p className='text-gray-600'>You've reviewed all {totalCandidates} candidates</p>
+          <p className='text-gray-600'>You&apos;ve reviewed all {totalCandidates} candidates</p>
           <div className='flex gap-4 justify-center'>
             <Button size='lg'>Export Shortlist ({shortlisted.length})</Button>
             <Button variant='outline' size='lg' asChild>
@@ -697,8 +697,8 @@ export default function ReviewPage() {
                   <div>
                     <h3 className='font-medium mb-3'>Key Achievements</h3>
                     <ul className='space-y-2'>
-                      {currentCandidate.achievements.map((achievement, index) => (
-                        <li key={index} className='flex items-start gap-2'>
+                      {currentCandidate.achievements.map((achievement) => (
+                        <li key={`mobile-${achievement}`} className='flex items-start gap-2'>
                           <Star className='w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0' />
                           <span className='text-sm'>{achievement}</span>
                         </li>

@@ -54,11 +54,11 @@ export default function UploadPage() {
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
   const validateFile = (file) => {
-    const extension = '.' + file.name.split('.').pop().toLowerCase();
+    const extension = `.${file.name.split('.').pop().toLowerCase()}`;
     if (!ACCEPTED_TYPES.includes(extension)) {
       return { valid: false, error: 'Unsupported file type' };
     }
@@ -66,6 +66,19 @@ export default function UploadPage() {
       return { valid: false, error: 'File too large (max 10MB)' };
     }
     return { valid: true };
+  };
+
+  const getBadgeVariant = (status) => {
+    switch (status) {
+      case 'done':
+        return 'default';
+      case 'failed':
+        return 'destructive';
+      case 'uploading':
+        return 'secondary';
+      default:
+        return 'outline';
+    }
   };
 
   const addFiles = useCallback(
@@ -364,7 +377,8 @@ export default function UploadPage() {
                 <CardHeader>
                   <CardTitle>Bulk upload CVs</CardTitle>
                   <CardDescription>
-                    Drop PDFs/DOCs or ZIP/CSV. We'll pre-screen with AI so you can review faster.
+                    Drop PDFs/DOCs or ZIP/CSV. We&apos;ll pre-screen with AI so you can review
+                    faster.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className='space-y-6'>
@@ -432,15 +446,7 @@ export default function UploadPage() {
 
                                 <div className='flex items-center space-x-3'>
                                   <Badge
-                                    variant={
-                                      fileData.status === 'done'
-                                        ? 'default'
-                                        : fileData.status === 'failed'
-                                          ? 'destructive'
-                                          : fileData.status === 'uploading'
-                                            ? 'secondary'
-                                            : 'outline'
-                                    }
+                                    variant={getBadgeVariant(fileData.status)}
                                   >
                                     {fileData.status === 'done' && (
                                       <CheckCircle className='w-3 h-3 mr-1' />

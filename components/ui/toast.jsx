@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const ToastIcon = ({ variant, className }) => {
+function ToastIcon({ variant, className }) {
   const icons = {
     success: CheckCircle,
     destructive: AlertCircle,
@@ -12,9 +12,9 @@ const ToastIcon = ({ variant, className }) => {
 
   const IconComponent = icons[variant] || Info;
   return <IconComponent className={cn('w-5 h-5', className)} />;
-};
+}
 
-const Toast = ({ toast, onDismiss, position = 'top-right' }) => {
+function Toast({ toast, onDismiss, position = 'top-right' }) {
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
@@ -27,15 +27,6 @@ const Toast = ({ toast, onDismiss, position = 'top-right' }) => {
   const handleDismiss = () => {
     setIsExiting(true);
     setTimeout(() => onDismiss(toast.id), 150);
-  };
-
-  const handleAction = (action) => {
-    if (action.onClick) {
-      action.onClick();
-    }
-    if (action.dismissOnClick !== false) {
-      handleDismiss();
-    }
   };
 
   const getPositionClasses = (pos) => {
@@ -104,6 +95,7 @@ const Toast = ({ toast, onDismiss, position = 'top-right' }) => {
           {/* Dismiss button */}
           <button
             onClick={handleDismiss}
+            type='button'
             className='flex-shrink-0 ml-2 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors'
             aria-label='Dismiss notification'
           >
@@ -126,7 +118,7 @@ const Toast = ({ toast, onDismiss, position = 'top-right' }) => {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes shrink {
           from {
             width: 100%;
@@ -138,6 +130,6 @@ const Toast = ({ toast, onDismiss, position = 'top-right' }) => {
       `}</style>
     </div>
   );
-};
+}
 
 export default Toast;

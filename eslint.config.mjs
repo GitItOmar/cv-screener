@@ -33,7 +33,6 @@ export default [
       // React rules
       'react/jsx-uses-react': 'error',
       'react/jsx-uses-vars': 'error',
-      'react/prop-types': 'warn',
       'react/function-component-definition': 'warn',
       'react/no-unescaped-entities': 'warn',
       'react/no-array-index-key': 'warn',
@@ -130,7 +129,6 @@ export default [
       'no-unused-vars': 'error',
 
       // General rules
-      'no-underscore-dangle': 'warn',
       'no-nested-ternary': 'warn',
       'no-continue': 'warn',
       'no-restricted-syntax': 'warn',

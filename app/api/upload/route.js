@@ -180,7 +180,7 @@ const writeDebugTempFile = async (fileName, stage, data) => {
 
     await fs.writeFile(debugFilePath, content, 'utf8');
     return debugFilePath;
-  } catch (_err) {
+  } catch {
     return null;
   }
 };
