@@ -127,15 +127,7 @@ export default [
       // Default case - warn instead of error
       'default-case': 'warn',
 
-      // Unused variables - warn instead of error for development
-      'no-unused-vars': [
-        'warn',
-        {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-          ignoreRestSiblings: true,
-        },
-      ],
+      'no-unused-vars': 'error',
 
       // General rules
       'no-underscore-dangle': 'warn',

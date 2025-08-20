@@ -244,8 +244,6 @@ export default function UploadPage() {
 
         setUploadStats((prev) => ({ ...prev, succeeded: prev.succeeded + 1 }));
       } catch (error) {
-        console.error(`Upload failed for ${fileData.name}:`, error);
-
         setFiles((prev) =>
           prev.map((f) =>
             f.id === fileData.id

@@ -9,45 +9,31 @@ export async function POST(request) {
   const startTime = Date.now();
 
   try {
-    console.info('[UPLOAD] Starting file upload and processing');
     const formData = await request.formData();
 
     const file = formData.get('file');
     const extractData = true;
 
     if (!file) {
-      console.warn('[UPLOAD] No file provided in request');
       return Response.json({ error: 'No file provided' }, { status: 400 });
     }
 
     if (!(file instanceof File)) {
-      console.warn('[UPLOAD] Provided file is not a File object:', file);
       return Response.json({ error: 'Invalid file format' }, { status: 400 });
     }
 
     // File validation
     const validationResult = validateFile(file);
     if (!validationResult.isValid) {
-      console.warn('[UPLOAD] File validation failed:', validationResult.error);
       return Response.json({ error: validationResult.error }, { status: 400 });
     }
-
-    console.info('[UPLOAD] File validation passed:', {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      extension: validationResult.extension,
-    });
 
     // Process the file
     let processedData = null;
     if (extractData) {
       try {
         processedData = await processFileContent(file, validationResult.extension);
-        console.info('[UPLOAD] File processing completed successfully');
       } catch (processingError) {
-        console.error('[UPLOAD] File processing failed:', processingError.message);
-
         // Return partial success with error details
         return Response.json(
           {
@@ -98,16 +84,8 @@ export async function POST(request) {
       };
     }
 
-    console.info('[UPLOAD] Upload completed successfully:', {
-      fileName: file.name,
-      extractionRequested: extractData,
-      extractionSuccess: !!processedData,
-      totalTime: Date.now() - startTime,
-    });
-
     return Response.json(response, { status: 200 });
   } catch (error) {
-    console.error('[UPLOAD] Upload failed:', error);
     return Response.json(
       {
         error: 'Upload failed',
@@ -176,7 +154,6 @@ function validateMimeType(mimeType, extension) {
 
   // Some browsers might not set MIME type correctly, so we're lenient
   if (mimeType && !allowedMimes.includes(mimeType)) {
-    console.warn(`[UPLOAD] MIME type mismatch: ${mimeType} for extension .${extension}`);
     // Don't fail validation, just warn
   }
 
@@ -184,35 +161,29 @@ function validateMimeType(mimeType, extension) {
 }
 
 /**
- * Write debug data to a temp file for inspection.
+ * Write debug data to a temp file for inspection in the project root.
  * @param {string} fileName - The base file name (for context)
  * @param {string} stage - The processing stage (parsed, cleaned, semantic)
  * @param {string|object} data - The data to write
  */
-async function writeDebugTempFile(fileName, stage, data) {
+const writeDebugTempFile = async (fileName, stage, data) => {
   try {
     const safeName = fileName.replace(/[^a-zA-Z0-9_.-]/g, '_');
     const timestamp = Date.now();
     const ext = stage === 'semantic' ? 'json' : 'txt';
-    const tempDir = '/tmp';
+    // Write to project root instead of /tmp
+    const projectRoot = process.cwd();
     const debugFileName = `${safeName}.${stage}.${timestamp}.${ext}`;
-    const debugFilePath = path.join(tempDir, debugFileName);
+    const debugFilePath = path.join(projectRoot, debugFileName);
 
-    let content;
-    if (typeof data === 'object') {
-      content = JSON.stringify(data, null, 2);
-    } else {
-      content = String(data);
-    }
+    const content = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data);
 
     await fs.writeFile(debugFilePath, content, 'utf8');
-    console.info(`[UPLOAD][DEBUG] Saved ${stage} result to temp file: ${debugFilePath}`);
     return debugFilePath;
-  } catch (err) {
-    console.warn(`[UPLOAD][DEBUG] Failed to write ${stage} debug file:`, err.message);
+  } catch (_err) {
     return null;
   }
-}
+};
 
 /**
  * Process file content and extract resume data
@@ -221,16 +192,13 @@ async function writeDebugTempFile(fileName, stage, data) {
  * @returns {Promise<Object>} - Processing result
  */
 async function processFileContent(file, extension) {
-  console.info('[UPLOAD] Starting file content processing');
   const processingStartTime = Date.now();
 
   try {
     // Convert file to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
-    console.debug('[UPLOAD] File converted to ArrayBuffer, size:', arrayBuffer.byteLength);
 
     // Parse the file using the appropriate parser
-    console.info(`[UPLOAD] Parsing file with extension: .${extension}`);
     const rawText = await ParserFactory.parseFile(arrayBuffer, file.type, file.name);
 
     // Save parsed text for debugging
@@ -241,13 +209,10 @@ async function processFileContent(file, extension) {
       throw new Error('No text content could be extracted from the file');
     }
 
-    console.info('[UPLOAD] File parsed successfully, text length:', rawText.length);
-
     // Clean and prepare text for LLM processing
     const cleanedText = TextExtractor.cleanAndNormalize(rawText, extension);
     // Save cleaned text for debugging
     const cleanedTextDebugPath = await writeDebugTempFile(file.name, 'cleaned', cleanedText);
-    console.debug('[UPLOAD] Text cleaned, final length:', cleanedText.length);
 
     // Extract semantic structure for additional metadata
     const semanticStructure = TextExtractor.extractSemanticStructure(cleanedText);
@@ -259,7 +224,6 @@ async function processFileContent(file, extension) {
     );
 
     // Extract structured data using LLM
-    console.info('[UPLOAD] Starting LLM extraction');
     const extractedData = await llmExtractor.extractResumeData(cleanedText, {
       model: 'gpt-3.5-turbo',
       temperature: 0.3,
@@ -267,12 +231,8 @@ async function processFileContent(file, extension) {
       validateResults: true,
     });
 
-    console.info('[UPLOAD] LLM extraction completed');
-
     // Validate the extracted data
-    console.info('[UPLOAD] Starting data validation');
     const validationResult = await dataValidator.validateResumeData(extractedData);
-    console.info('[UPLOAD] Data validation completed');
 
     // Get processing statistics
     const processingTime = Date.now() - processingStartTime;
@@ -304,17 +264,8 @@ async function processFileContent(file, extension) {
       },
     };
 
-    console.info('[UPLOAD] File processing completed successfully:', {
-      processingTime,
-      validationPassed: validationResult.isValid,
-      errorsFound: validationResult.errors.length,
-      warningsFound: validationResult.warnings.length,
-    });
-
     return result;
   } catch (error) {
-    console.error('[UPLOAD] File processing failed:', error);
-
     // Provide more specific error messages
     if (error.message.includes('No text content')) {
       throw new Error('The file appears to be empty or contains no readable text content');
@@ -341,6 +292,5 @@ async function processFileContent(file, extension) {
  */
 function getFileExtension(filename) {
   const ext = filename.split('.').pop() || 'unknown';
-  console.debug(`[UPLOAD] Extracted extension: ${ext} from filename: ${filename}`);
   return ext;
 }

@@ -72,7 +72,6 @@ export const useToast = () => {
     } = options;
 
     if (!title && !description) {
-      console.warn('useToast: title or description is required');
       return null;
     }
 
