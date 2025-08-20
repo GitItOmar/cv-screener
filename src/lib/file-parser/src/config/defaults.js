@@ -37,10 +37,18 @@ export default {
 
   // Error handling
   errorHandling: {
-    retryAttempts: 1,
+    retryAttempts: 2, // Increased default retry attempts
     retryDelay: 1000,
     throwOnValidationError: true,
     includeStackTrace: process.env.NODE_ENV === 'development',
+    enableRecovery: true, // Enable error recovery strategies by default
+    allowPartialRecovery: true, // Allow partial content extraction
+    partialThreshold: 0.1, // Minimum content percentage for partial recovery
+    circuitBreakerEnabled: false, // Circuit breaker disabled by default
+    circuitBreakerThreshold: 5, // Failure threshold for circuit breaker
+    circuitBreakerTimeout: 60000, // Reset timeout for circuit breaker (1 minute)
+    sanitizeStackTraces: process.env.NODE_ENV !== 'development', // Sanitize in non-dev
+    createErrorFingerprints: true, // Enable error fingerprinting for deduplication
   },
 
   // Performance settings

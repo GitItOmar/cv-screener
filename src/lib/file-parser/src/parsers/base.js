@@ -2,7 +2,13 @@
  * Base parser class defining the interface for all file parsers
  */
 
-import { ValidationError, TimeoutError, createParserError } from '../utils/errors.js';
+import {
+  ValidationError,
+  TimeoutError,
+  createParserError,
+  ErrorRecovery,
+  ErrorUtils,
+} from '../utils/errors.js';
 import { validateFile } from '../utils/fileType.js';
 import defaultConfig from '../config/defaults.js';
 
@@ -123,6 +129,16 @@ export default class BaseParser {
     const mergedOptions = { ...this.config, ...options };
     const progressCallback = mergedOptions.onProgress;
 
+    // Create error context for better debugging
+    const errorContext = {
+      parser: this.constructor.parserName,
+      filename: input instanceof File ? input.name : 'unknown',
+      fileSize: input instanceof File ? input.size : input.byteLength || input.length,
+      operation: 'parseWithValidation',
+      options: mergedOptions,
+      startTime,
+    };
+
     try {
       // Initialize progress reporting
       if (progressCallback && typeof progressCallback === 'function') {
@@ -152,12 +168,16 @@ export default class BaseParser {
         }
       }
 
-      // Step 3: Parse content with timeout
+      // Step 3: Parse content with error recovery
       let parseResult;
-      if (mergedOptions.timeout) {
-        parseResult = await this._parseWithTimeout(input, mergedOptions);
+      const recoveryEnabled =
+        mergedOptions.enableRecovery !== false &&
+        this.config.errorHandling?.enableRecovery !== false;
+
+      if (recoveryEnabled) {
+        parseResult = await this._parseWithRecovery(input, mergedOptions, progressCallback);
       } else {
-        parseResult = await this.parse(input, mergedOptions);
+        parseResult = await this._parseWithTimeout(input, mergedOptions);
       }
 
       if (progressCallback) {
@@ -185,14 +205,82 @@ export default class BaseParser {
       const processingTime = Date.now() - startTime;
       this._updateStats(processingTime, false);
 
-      // Convert to appropriate parser error
+      // Create detailed error context
+      const enhancedContext = ErrorUtils.createErrorContext(error, errorContext);
+
+      // Convert to appropriate parser error with enhanced context
       const parserError = createParserError(error, {
         parser: this.constructor.parserName,
-        filename: input instanceof File ? input.name : 'unknown',
+        filename: errorContext.filename,
+        fileSize: errorContext.fileSize,
+        processingTime,
+        enhancedContext,
       });
 
       throw parserError;
     }
+  }
+
+  /**
+   * Parse with error recovery strategies
+   * @param {ArrayBuffer|Buffer|File} input - File to parse
+   * @param {Object} options - Parsing options
+   * @param {Function} progressCallback - Progress callback
+   * @returns {Promise<Object>} Parse result
+   * @private
+   */
+  async _parseWithRecovery(input, options, progressCallback) {
+    const errorConfig = this.config.errorHandling || {};
+
+    const retryOptions = {
+      maxAttempts: options.retryAttempts || errorConfig.retryAttempts || 2,
+      baseDelay: options.retryDelay || errorConfig.retryDelay || 1000,
+      retryCondition: (error) => ErrorUtils.isTransientError(error),
+      onRetry: (error, attempt, maxAttempts) => {
+        if (progressCallback) {
+          progressCallback(
+            60 + (attempt / maxAttempts) * 20,
+            `Retry attempt ${attempt}/${maxAttempts - 1} after error: ${error.message.substring(0, 50)}...`,
+          );
+        }
+      },
+    };
+
+    // Try with retry strategy first
+    try {
+      return await ErrorRecovery.retry(() => this._parseWithTimeout(input, options), retryOptions);
+    } catch (error) {
+      // If retry fails and partial recovery is enabled, try to extract what we can
+      const allowPartial =
+        options.allowPartialRecovery !== false && errorConfig.allowPartialRecovery !== false;
+
+      if (allowPartial) {
+        return await ErrorRecovery.partialRecovery(
+          () => {
+            throw error;
+          }, // Re-throw the error
+          () => this._attemptPartialExtraction(input, options),
+          {
+            allowPartial: true,
+            partialThreshold: options.partialThreshold || errorConfig.partialThreshold || 0.1,
+          },
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Attempt to extract partial content from corrupted files
+   * @param {ArrayBuffer|Buffer|File} input - File input
+   * @param {Object} options - Options
+   * @returns {Promise<Object>} Partial extraction result
+   * @private
+   */
+  async _attemptPartialExtraction() {
+    // Default implementation - subclasses should override for format-specific partial extraction
+    throw new Error('Partial extraction not implemented for this parser');
   }
 
   /**

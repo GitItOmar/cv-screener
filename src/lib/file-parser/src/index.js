@@ -35,6 +35,9 @@ export {
   createParserError,
   isParserError,
   formatErrorForUser,
+  getErrorSeverity,
+  ErrorRecovery,
+  ErrorUtils,
 } from './utils/errors.js';
 
 export {
