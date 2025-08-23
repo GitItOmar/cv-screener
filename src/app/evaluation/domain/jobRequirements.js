@@ -101,5 +101,3 @@ export const jobRequirements = {
     },
   },
 };
-
-export default jobRequirements;

@@ -4,7 +4,7 @@ import { ResumeScorer } from './scorer.js';
  * Resume Evaluation Service
  * Orchestrates the complete evaluation process for extracted resume data
  */
-export class ResumeEvaluator {
+class ResumeEvaluator {
   constructor() {
     this.scorer = new ResumeScorer();
   }

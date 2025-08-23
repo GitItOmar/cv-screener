@@ -36,7 +36,11 @@ export async function extractFromFile(file) {
     // Extract structured data using LLM with optimal hardcoded settings
     const extractedData = await llmExtractor.extractResumeData(cleanedText);
 
-    return { extractedData };
+    // Include the cleaned text in the result for evaluation
+    return {
+      extractedData,
+      text: cleanedText,
+    };
   } catch (error) {
     // Enhanced error handling with FileParser errors
 

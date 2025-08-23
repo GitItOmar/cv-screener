@@ -16,7 +16,6 @@
   "dependencies": {
     "file-type": "^19.0.0",
     "mammoth": "^1.10.0",
-    "p-timeout": "^6.1.2",
     "pdf2json": "^3.2.0"
   },
   "engines": {

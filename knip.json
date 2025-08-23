@@ -1,7 +1,13 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "paths": {
-    "@/*": ["./src/*"]
-  },
-  "ignoreDependencies": ["tw-animate-css"]
+  "workspaces": {
+    ".": {
+      "paths": {
+        "@/*": ["./src/*"]
+      },
+      "ignoreDependencies": ["tw-animate-css"]
+    },
+    "src/lib/file-parser": {},
+    "src/lib/llm-client": {}
+  }
 }

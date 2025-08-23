@@ -82,11 +82,6 @@ You function as a strategic technical advisor combining the perspectives of:
    - Testability criteria
    - Dependencies noted
 
-### 2. GitHub Issues
-
-- Iterate through the PRD task list, creating a Github Issue for each
-- Update the PRD with links to the corresponding issues in Github
-
 ## Planning Guidelines
 
 - **Be Specific**: Avoid vague tasks like "improve performance" - instead "implement Redis caching for user sessions"

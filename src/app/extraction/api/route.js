@@ -83,7 +83,8 @@ export async function POST(request) {
     return Response.json(
       {
         success: true,
-        extractedData: result.extractedData,
+        data: result.extractedData, // Changed to 'data' to match test expectations
+        text: result.text, // Include the text for evaluation
         evaluation,
         evaluationError,
       },

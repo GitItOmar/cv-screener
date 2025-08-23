@@ -1,6 +1,7 @@
 import { jobRequirements } from './jobRequirements.js';
 import { LLMClient, ResponseParser } from '@/lib/llm-client/src/index.js';
 import EvaluationPrompts from './prompts.js';
+import { keywordDetector } from '@/app/extraction/domain/keywordDetector.js';
 
 /**
  * LLM-based Resume Scoring Module
@@ -42,11 +43,24 @@ export class ResumeScorer {
    * Score skills and specialties (0-2 scale) with Brains & Selectivity signals
    */
   async scoreSkillsSpecialties(skillsSpecialties) {
+    // Check for Shopify-related keywords in skills
+    const skillsText = JSON.stringify(skillsSpecialties);
+    const keywordScan = keywordDetector.scanText(skillsText);
+
     const prompt = EvaluationPrompts.buildSkillsPrompt(skillsSpecialties, this.jobReqs);
 
     try {
       const result = await this.evaluateWithLLM(prompt);
-      return this.parseLLMResponse(result, 2);
+      const parsedResult = this.parseLLMResponse(result, 2);
+
+      // Add keyword detection info
+      parsedResult.details.keywordDetection = {
+        shopify: keywordScan.detectedKeywords.shopify,
+        liquid: keywordScan.detectedKeywords.liquid,
+        ecommerce: keywordScan.detectedKeywords.ecommerce,
+      };
+
+      return parsedResult;
     } catch {
       return this.getErrorResponse(2, 'Skills scoring failed');
     }
@@ -56,11 +70,38 @@ export class ResumeScorer {
    * Score work experience (0-4 scale) with Hardcore, Communication & Diversity signals
    */
   async scoreWorkExperience(workExperience) {
+    // First, check for Shopify keyword in work experience using keyword detector
+    const workExpText = JSON.stringify(workExperience);
+    const keywordScan = keywordDetector.scanText(workExpText);
+
+    // If Shopify is not detected by keyword scanner, ensure it's reflected in scoring
+    if (!keywordScan.detectedKeywords.shopify?.found) {
+      console.warn('[Scorer] Keyword detector found no Shopify experience in work history');
+
+      // Return minimal score immediately if Shopify is missing
+      return {
+        score: 0,
+        maxScore: 4,
+        percentage: 0,
+        reasoning: 'No Shopify experience detected - critical requirement not met',
+        signals: {},
+        details: {
+          shopify_experience: null,
+          keywordDetection: keywordScan.detectedKeywords.shopify,
+        },
+      };
+    }
+
     const prompt = EvaluationPrompts.buildExperiencePrompt(workExperience, this.jobReqs);
 
     try {
       const result = await this.evaluateWithLLM(prompt);
-      return this.parseLLMResponse(result, 4);
+      const parsedResult = this.parseLLMResponse(result, 4);
+
+      // Add keyword detection info to the result
+      parsedResult.details.keywordDetection = keywordScan.detectedKeywords.shopify;
+
+      return parsedResult;
     } catch {
       return this.getErrorResponse(4, 'Work experience scoring failed');
     }
@@ -152,11 +193,22 @@ export class ResumeScorer {
     let finalPercentage = overallScore.percentage;
     const penalties = [];
 
-    // Check for Shopify experience gate
+    // Enhanced Shopify experience gate using keyword detection
     const workExperienceResult = categoryScores.workExperience;
-    if (workExperienceResult.score === 0 || !workExperienceResult.details?.shopify_experience) {
+    const skillsResult = categoryScores.skillsSpecialties;
+
+    // Check both work experience and skills for Shopify
+    const hasShopifyInWork =
+      workExperienceResult.details?.keywordDetection?.shopify?.found ||
+      workExperienceResult.details?.shopify_experience;
+    const hasShopifyInSkills = skillsResult.details?.keywordDetection?.shopify?.found;
+
+    if (!hasShopifyInWork && !hasShopifyInSkills) {
       finalPercentage = Math.min(finalPercentage, 40);
-      penalties.push('No Shopify experience - capped at 40%');
+      penalties.push('No Shopify experience detected by keyword scanner - capped at 40%');
+    } else if (workExperienceResult.score === 0 && hasShopifyInWork) {
+      // If keyword was detected but score is 0, there might be an issue
+      console.warn('[Scorer] Shopify keyword detected but work experience score is 0');
     }
 
     // Check for language proficiency gate
@@ -241,5 +293,3 @@ export class ResumeScorer {
     return maxScores[category] || 1;
   }
 }
-
-export default ResumeScorer;
