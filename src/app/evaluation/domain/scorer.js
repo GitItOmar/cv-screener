@@ -1,5 +1,6 @@
-import { jobRequirements } from '../data/jobRequirements.js';
-import { resumeAgent } from '../../../lib/agents/resumeAgent.js';
+import { jobRequirements } from './jobRequirements.js';
+import { LLMClient, ResponseParser } from '@/lib/llm-client/src/index.js';
+import EvaluationPrompts from './prompts.js';
 
 /**
  * LLM-based Resume Scoring Module
@@ -8,14 +9,26 @@ import { resumeAgent } from '../../../lib/agents/resumeAgent.js';
 export class ResumeScorer {
   constructor() {
     this.jobReqs = jobRequirements;
-    this.llmAgent = resumeAgent;
+
+    // Initialize the unified LLM client with GPT-4o
+    this.client = new LLMClient({
+      provider: 'openai',
+      model: 'gpt-4o',
+      apiKey: process.env.OPENAI_API_KEY,
+      temperature: 0,
+      timeout: 60000,
+      costTracking: true,
+      logging: process.env.NODE_ENV === 'development',
+    });
+
+    this.responseParser = new ResponseParser();
   }
 
   /**
    * Score self-evaluation section (0-1 scale) with Passion & Communication signals
    */
   async scoreSelfEvaluation(selfEvaluation) {
-    const prompt = this.buildSelfEvaluationPrompt(selfEvaluation);
+    const prompt = EvaluationPrompts.buildSelfEvaluationPrompt(selfEvaluation);
 
     try {
       const result = await this.evaluateWithLLM(prompt);
@@ -29,7 +42,7 @@ export class ResumeScorer {
    * Score skills and specialties (0-2 scale) with Brains & Selectivity signals
    */
   async scoreSkillsSpecialties(skillsSpecialties) {
-    const prompt = this.buildSkillsPrompt(skillsSpecialties);
+    const prompt = EvaluationPrompts.buildSkillsPrompt(skillsSpecialties, this.jobReqs);
 
     try {
       const result = await this.evaluateWithLLM(prompt);
@@ -43,7 +56,7 @@ export class ResumeScorer {
    * Score work experience (0-4 scale) with Hardcore, Communication & Diversity signals
    */
   async scoreWorkExperience(workExperience) {
-    const prompt = this.buildExperiencePrompt(workExperience);
+    const prompt = EvaluationPrompts.buildExperiencePrompt(workExperience, this.jobReqs);
 
     try {
       const result = await this.evaluateWithLLM(prompt);
@@ -57,7 +70,7 @@ export class ResumeScorer {
    * Score basic information (0-1 scale) with language proficiency check
    */
   async scoreBasicInformation(basicInformation) {
-    const prompt = this.buildBasicInfoPrompt(basicInformation);
+    const prompt = EvaluationPrompts.buildBasicInfoPrompt(basicInformation, this.jobReqs);
 
     try {
       const result = await this.evaluateWithLLM(prompt);
@@ -71,7 +84,7 @@ export class ResumeScorer {
    * Score education background (0-2 scale) with Selectivity & Brains signals
    */
   async scoreEducationBackground(educationBackground) {
-    const prompt = this.buildEducationPrompt(educationBackground);
+    const prompt = EvaluationPrompts.buildEducationPrompt(educationBackground, this.jobReqs);
 
     try {
       const result = await this.evaluateWithLLM(prompt);
@@ -82,219 +95,29 @@ export class ResumeScorer {
   }
 
   /**
-   * Build self-evaluation LLM prompt
-   */
-  buildSelfEvaluationPrompt(selfEvaluation) {
-    return [
-      {
-        role: 'system',
-        content: `You are evaluating a candidate's self-evaluation for a Shopify Junior Developer role.
-        
-Score 0-1 points considering:
-- Summary quality and clarity (0.4 points)
-- Career goals alignment with role (0.3 points)
-- PASSION signal: Personal projects, side projects, learning initiatives (0.2 points)
-- COMMUNICATION signal: Clear, well-structured presentation (0.1 points)
-
-Return JSON format:
-{
-  "score": 0.X,
-  "reasoning": "detailed explanation",
-  "signals_found": {
-    "passion": boolean,
-    "communication": boolean
-  }
-}`,
-      },
-      {
-        role: 'user',
-        content: `Evaluate this self-evaluation data:
-${JSON.stringify(selfEvaluation, null, 2)}
-
-Provide score and reasoning.`,
-      },
-    ];
-  }
-
-  /**
-   * Build skills LLM prompt
-   */
-  buildSkillsPrompt(skillsSpecialties) {
-    return [
-      {
-        role: 'system',
-        content: `You are evaluating a candidate's skills for a Shopify Junior Developer role.
-
-Required skills: ${this.jobReqs.skills.required.join(', ')}
-Preferred skills: ${this.jobReqs.skills.preferred.join(', ')}
-
-Score 0-2 points considering:
-- Required skills match (up to 1.2 points)
-- Preferred skills match (up to 0.5 points)
-- BRAINS signal: Deep technical understanding, complex problem-solving (0.2 points)
-- SELECTIVITY signal: Certifications, continuous learning, competitions (0.1 points)
-
-Return JSON format:
-{
-  "score": 0.X,
-  "reasoning": "detailed explanation",
-  "signals_found": {
-    "brains": boolean,
-    "selectivity": boolean
-  }
-}`,
-      },
-      {
-        role: 'user',
-        content: `Evaluate these skills:
-${JSON.stringify(skillsSpecialties, null, 2)}
-
-Provide score and reasoning.`,
-      },
-    ];
-  }
-
-  /**
-   * Build experience LLM prompt
-   */
-  buildExperiencePrompt(workExperience) {
-    return [
-      {
-        role: 'system',
-        content: `You are evaluating work experience for a Shopify Junior Developer role.
-
-CRITICAL REQUIREMENTS:
-- Minimum 1 year Shopify experience (MANDATORY - return 0 if missing)
-- Relevant roles: ${this.jobReqs.experience.relevantRoles.join(', ')}
-
-Score 0-4 points considering:
-- Shopify experience (2.5 points - MANDATORY)
-- Years of relevant experience (1 point)
-- HARDCORE signal: Ambitious projects, startup experience, high-pressure situations (0.2 points)
-- COMMUNICATION signal: Client-facing work, team leadership (0.2 points)
-- DIVERSITY signal: Varied industries, international experience (0.1 points)
-
-Return JSON format:
-{
-  "score": 0.X,
-  "reasoning": "detailed explanation",
-  "shopify_experience": "description of shopify experience found",
-  "signals_found": {
-    "hardcore": boolean,
-    "communication": boolean,
-    "diversity": boolean
-  }
-}`,
-      },
-      {
-        role: 'user',
-        content: `Evaluate this work experience:
-${JSON.stringify(workExperience, null, 2)}
-
-Provide score and reasoning. Return 0 if no Shopify experience is found.`,
-      },
-    ];
-  }
-
-  /**
-   * Build basic info LLM prompt
-   */
-  buildBasicInfoPrompt(basicInformation) {
-    return [
-      {
-        role: 'system',
-        content: `You are evaluating basic information for a Shopify Junior Developer role.
-
-Requirements:
-- Preferred locations: ${this.jobReqs.location.preferred.join(', ')}
-- Required language proficiency: C1 English or German with evidence
-
-Score 0-1 points considering:
-- Contact completeness (name, email, phone) (0.4 points)
-- Location alignment with DACH region (0.3 points)
-- Language proficiency evidence (C1 English/German) (0.3 points)
-
-Look for language evidence in:
-- Explicit proficiency statements
-- Education in English/German-speaking countries
-- Work experience in these countries
-- Language certifications
-
-Return JSON format:
-{
-  "score": 0.X,
-  "reasoning": "detailed explanation",
-  "language_evidence": "description of language proficiency evidence found"
-}`,
-      },
-      {
-        role: 'user',
-        content: `Evaluate this basic information:
-${JSON.stringify(basicInformation, null, 2)}
-
-Provide score and reasoning.`,
-      },
-    ];
-  }
-
-  /**
-   * Build education LLM prompt
-   */
-  buildEducationPrompt(educationBackground) {
-    return [
-      {
-        role: 'system',
-        content: `You are evaluating education for a Shopify Junior Developer role.
-
-Acceptable education:
-- Formal degrees: ${this.jobReqs.education.preferredFields.join(', ')}
-- Alternatives: ${this.jobReqs.education.alternatives.join(', ')}
-
-Score 0-2 points considering:
-- Relevant formal education (up to 1.3 points)
-- Alternative education paths (bootcamps, self-taught) (up to 1 point)
-- SELECTIVITY signal: Bootcamp completion, competitions, selective programs (0.4 points)
-- BRAINS signal: Academic achievements, complex projects (0.3 points)
-
-Return JSON format:
-{
-  "score": 0.X,
-  "reasoning": "detailed explanation",
-  "signals_found": {
-    "selectivity": boolean,
-    "brains": boolean
-  }
-}`,
-      },
-      {
-        role: 'user',
-        content: `Evaluate this education background:
-${JSON.stringify(educationBackground, null, 2)}
-
-Provide score and reasoning.`,
-      },
-    ];
-  }
-
-  /**
-   * Evaluate with LLM using existing resumeAgent
+   * Evaluate with LLM using unified client
    */
   async evaluateWithLLM(messages) {
-    // Override the buildExtractionPrompt method temporarily
-    const originalMethod = this.llmAgent.buildExtractionPrompt;
-    this.llmAgent.buildExtractionPrompt = () => messages;
-
     try {
-      const result = await this.llmAgent.extractResumeData('', {
-        model: 'gpt-3.5-turbo',
+      // Initialize client if needed
+      await this.client.initialize();
+
+      // Make the LLM call with our unified client (always returns JSON)
+      const response = await this.client.complete(messages, {
         temperature: 0,
         maxTokens: 1000,
       });
 
-      return result;
-    } finally {
-      // Restore original method
-      this.llmAgent.buildExtractionPrompt = originalMethod;
+      // Parse the JSON response
+      const parseResult = this.responseParser.parse(response);
+
+      if (!parseResult.success) {
+        throw new Error(`Response parsing failed: ${parseResult.error}`);
+      }
+
+      return parseResult.data;
+    } catch (error) {
+      throw new Error(`LLM evaluation failed: ${error.message}`);
     }
   }
 
@@ -303,22 +126,15 @@ Provide score and reasoning.`,
    */
   parseLLMResponse(result, maxScore) {
     try {
-      // Extract the response content
-      let responseContent = result;
-      if (result.positionAppliedFor) {
-        // If it's a full extraction result, we need to look for our scoring data
-        responseContent = result.metadata?.rawResponse || result;
-      }
-
-      const score = Math.max(0, Math.min(parseFloat(responseContent.score || 0), maxScore));
+      const score = Math.max(0, Math.min(parseFloat(result.score || 0), maxScore));
 
       return {
         score,
         maxScore,
         percentage: Math.round((score / maxScore) * 100),
-        reasoning: responseContent.reasoning || 'LLM evaluation completed',
-        signals: responseContent.signals_found || {},
-        details: responseContent,
+        reasoning: result.reasoning || 'LLM evaluation completed',
+        signals: result.signals_found || {},
+        details: result,
       };
     } catch (error) {
       return this.getErrorResponse(maxScore, `Failed to parse LLM response: ${error.message}`);
@@ -419,6 +235,34 @@ Provide score and reasoning.`,
       educationBackground: 2,
     };
     return maxScores[category] || 1;
+  }
+
+  /**
+   * Get scoring statistics
+   * @returns {Object} - Current scoring statistics
+   */
+  getScoringStats() {
+    return this.client.getCostTracking();
+  }
+
+  /**
+   * Reset scoring statistics
+   */
+  resetStats() {
+    this.client.resetCostTracking();
+  }
+
+  /**
+   * Test LLM connection
+   * @returns {Promise<boolean>} - Whether connection is working
+   */
+  async testConnection() {
+    try {
+      await this.client.initialize();
+      return await this.client.testConnection();
+    } catch {
+      return false;
+    }
   }
 }
 

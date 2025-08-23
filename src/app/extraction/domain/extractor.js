@@ -3,7 +3,7 @@
  * Coordinates the entire extraction process
  */
 
-import FileParser from '../../../lib/file-parser/src/FileParser.js';
+import FileParser from '@/lib/file-parser/src/FileParser.js';
 import TextExtractor from './parser.js';
 import { llmExtractor } from './llm.js';
 

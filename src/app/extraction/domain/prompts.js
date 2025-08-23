@@ -1,4 +1,4 @@
-class PromptTemplates {
+class ExtractionPrompts {
   /**
    * Get system prompt for resume data extraction
    * @returns {string} - Detailed system prompt
@@ -276,7 +276,7 @@ Return the JSON object now:`,
     "strengths": ["Machine learning", "Statistical analysis", "Data visualization"],
     "goals": "Apply machine learning skills and statistical analysis knowledge in real-world business problems"
   },
-  "skillsAndSpecialties": {
+  "skillsAndSpecialities": {
     "technical": ["Python", "R", "SQL"],
     "frameworks": ["Pandas", "NumPy", "Scikit-learn", "TensorFlow"],
     "tools": ["Jupyter", "Git", "Tableau"],
@@ -444,4 +444,4 @@ Return the JSON object now:`,
   }
 }
 
-export default PromptTemplates;
+export default ExtractionPrompts;

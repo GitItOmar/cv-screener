@@ -1,9 +1,21 @@
-import { resumeAgent } from '../../../lib/agents/resumeAgent.js';
-import PromptTemplates from '../../../lib/agents/promptTemplates.js';
+import { LLMClient, PromptBuilder, ResponseParser } from '@/lib/llm-client/src/index.js';
+import ExtractionPrompts from './prompts.js';
 
 class LLMExtractor {
   constructor() {
-    this.agent = resumeAgent;
+    // Initialize the unified LLM client with GPT-4o
+    this.client = new LLMClient({
+      provider: 'openai',
+      model: 'gpt-4o',
+      apiKey: process.env.OPENAI_API_KEY,
+      temperature: 0.3,
+      timeout: 60000,
+      costTracking: true,
+      logging: process.env.NODE_ENV === 'development',
+    });
+
+    this.responseParser = new ResponseParser();
+
     this.extractionOptions = {
       model: 'gpt-4o',
       temperature: 0.3,
@@ -18,28 +30,32 @@ class LLMExtractor {
    */
   async extractResumeData(resumeText) {
     try {
-      // Simple single extraction attempt
-      const messages = PromptTemplates.getMinimalPrompt(resumeText);
+      // Initialize client if needed
+      await this.client.initialize();
 
-      // Prepare extraction options for the agent
-      const agentOptions = {
-        model: this.extractionOptions.model,
+      // Build the prompt using the extraction domain prompts
+      const prompt = new PromptBuilder()
+        .setRole('resume_extractor')
+        .addSystemMessage(ExtractionPrompts.getSystemPrompt())
+        .addUserMessage(ExtractionPrompts.getUserPrompt(resumeText))
+        .build();
+
+      // Make the LLM call with our unified client (always returns JSON)
+      const response = await this.client.complete(prompt.messages, {
         temperature: this.extractionOptions.temperature,
         maxTokens: this.extractionOptions.maxTokens,
-        messages,
-      };
+      });
 
-      // Use the buildExtractionPrompt method but override with our messages
-      const originalBuildMethod = this.agent.buildExtractionPrompt;
-      this.agent.buildExtractionPrompt = () => messages;
+      // Parse the JSON response
+      const parseResult = this.responseParser.parse(response, {
+        schema: ExtractionPrompts.getResponseSchema(),
+      });
 
-      try {
-        const result = await this.agent.extractResumeData(resumeText, agentOptions);
-        return result;
-      } finally {
-        // Restore original method
-        this.agent.buildExtractionPrompt = originalBuildMethod;
+      if (!parseResult.success) {
+        throw new Error(`Response parsing failed: ${parseResult.error}`);
       }
+
+      return parseResult.data;
     } catch (error) {
       throw new Error(`Resume extraction failed: ${error.message}`);
     }
@@ -50,14 +66,14 @@ class LLMExtractor {
    * @returns {Object} - Current extraction statistics
    */
   getExtractionStats() {
-    return this.agent.getCostTracking();
+    return this.client.getCostTracking();
   }
 
   /**
    * Reset extraction statistics
    */
   resetStats() {
-    this.agent.resetCostTracking();
+    this.client.resetCostTracking();
   }
 
   /**
@@ -65,7 +81,12 @@ class LLMExtractor {
    * @returns {Promise<boolean>} - Whether connection is working
    */
   async testConnection() {
-    return await this.agent.testConnection();
+    try {
+      await this.client.initialize();
+      return await this.client.testConnection();
+    } catch {
+      return false;
+    }
   }
 }
 
