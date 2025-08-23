@@ -6,17 +6,13 @@
 import FileParser from '../../../lib/file-parser/src/FileParser.js';
 import TextExtractor from './parser.js';
 import { llmExtractor } from './llm.js';
-import { dataValidator } from './transformer.js';
 
 /**
  * Extract structured data from file
  * @param {File} file - File to extract from
- * @param {Object} options - Extraction options
  * @returns {Promise<Object>} - Extraction result
  */
-export async function extractFromFile(file, options = {}) {
-  const processingStartTime = Date.now();
-
+export async function extractFromFile(file) {
   try {
     // Determine file extension
     const extension = file.name.split('.').pop().toLowerCase();
@@ -27,9 +23,8 @@ export async function extractFromFile(file, options = {}) {
     // Parse the file using the FileParser
     const parseResult = await fileParser.parse(file);
 
-    // Extract text content from the comprehensive result
+    // Extract text content from the result
     const rawText = parseResult.data?.text;
-    const parsedText = rawText; // Save for debugging
 
     if (!rawText || rawText.trim().length === 0) {
       throw new Error('No text content could be extracted from the file');
@@ -38,61 +33,10 @@ export async function extractFromFile(file, options = {}) {
     // Clean and prepare text for LLM processing
     const cleanedText = TextExtractor.cleanAndNormalize(rawText, extension);
 
-    // Extract structured data using LLM
-    const extractedData = await llmExtractor.extractResumeData(cleanedText, {
-      model: 'gpt-3.5-turbo',
-      temperature: 0.3,
-      useEnhancedPrompts: true,
-      validateResults: true,
-      ...options.llmOptions,
-    });
+    // Extract structured data using LLM with optimal hardcoded settings
+    const extractedData = await llmExtractor.extractResumeData(cleanedText);
 
-    // Validate the extracted data
-    const validationResult = await dataValidator.validateResumeData(extractedData);
-
-    // Get processing statistics - combine FileParser stats with extraction stats
-    const processingTime = Date.now() - processingStartTime;
-    const extractionStats = llmExtractor.getExtractionStats();
-    const parserStats = fileParser.getStats();
-
-    const result = {
-      extractedData,
-      validation: validationResult,
-      statistics: {
-        processingTime,
-        textLength: cleanedText.length,
-        originalTextLength: rawText.length,
-        llmStats: extractionStats,
-        parser: {
-          // FileParser statistics
-          ...parserStats,
-          parsingTime: parseResult.processingTime,
-          success: parseResult.success,
-          parser: parseResult.parser,
-        },
-        fileInfo: {
-          name: file.name,
-          size: file.size,
-          extension,
-          type: file.type,
-          // Enhanced file info from FileParser
-          ...parseResult.file,
-        },
-      },
-      debug: {
-        parsedText,
-        cleanedText,
-        // Additional debugging info from FileParser
-        parseResult: {
-          success: parseResult.success,
-          parser: parseResult.parser,
-          processingTime: parseResult.processingTime,
-          timestamp: parseResult.timestamp,
-        },
-      },
-    };
-
-    return result;
+    return { extractedData };
   } catch (error) {
     // Enhanced error handling with FileParser errors
     // Log error for debugging in development

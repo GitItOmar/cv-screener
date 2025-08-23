@@ -330,27 +330,6 @@ Return the JSON object now:`,
   }
 
   /**
-   * Get enhanced prompt with examples for better accuracy
-   * @param {string} resumeText - Resume text to analyze
-   * @returns {Array} - Complete message array for API
-   */
-  static getEnhancedPrompt(resumeText) {
-    const messages = [{ role: 'system', content: this.getSystemPrompt() }];
-
-    // Add few-shot examples
-    const examples = this.getFewShotExamples();
-    examples.forEach((example) => {
-      messages.push({ role: 'user', content: example.content });
-      messages.push({ role: 'assistant', content: example.assistant });
-    });
-
-    // Add the actual user prompt
-    messages.push({ role: 'user', content: this.getUserPrompt(resumeText) });
-
-    return messages;
-  }
-
-  /**
    * Get minimal prompt for faster processing
    * @param {string} resumeText - Resume text to analyze
    * @returns {Array} - Minimal message array for API
@@ -359,80 +338,6 @@ Return the JSON object now:`,
     return [
       { role: 'system', content: this.getSystemPrompt() },
       { role: 'user', content: this.getUserPrompt(resumeText) },
-    ];
-  }
-
-  /**
-   * Get validation prompt for extracted data
-   * @param {Object} extractedData - Data to validate
-   * @param {string} originalText - Original resume text
-   * @returns {Array} - Validation prompt messages
-   */
-  static getValidationPrompt(extractedData, originalText) {
-    const systemPrompt = `You are a data validation expert. Your task is to verify that extracted resume data is accurate and consistent with the original text. Check for:
-
-1. Factual accuracy - all information should be present in the original text
-2. Consistency - dates, names, and details should match
-3. Completeness - important information shouldn't be missed
-4. Format compliance - data should follow the required structure
-
-Return a JSON object with validation results:
-{
-  "isValid": boolean,
-  "errors": ["array", "of", "error", "descriptions"],
-  "warnings": ["array", "of", "warning", "messages"],
-  "suggestions": ["array", "of", "improvement", "suggestions"]
-}`;
-
-    const userPrompt = `Please validate this extracted data against the original resume text:
-
-ORIGINAL TEXT:
-${originalText}
-
-EXTRACTED DATA:
-${JSON.stringify(extractedData, null, 2)}
-
-Return validation results in the specified JSON format:`;
-
-    return [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ];
-  }
-
-  /**
-   * Get prompt for missing information extraction
-   * @param {Object} extractedData - Previously extracted data
-   * @param {string} resumeText - Original resume text
-   * @returns {Array} - Completion prompt messages
-   */
-  static getCompletionPrompt(extractedData, resumeText) {
-    const systemPrompt = `You are tasked with finding missing information from a resume that wasn't captured in the initial extraction. Focus on finding any overlooked details that could improve the candidate profile.
-
-Return only a JSON object with additional found information using the same structure. Only include fields where you found new information:
-
-{
-  "positionAppliedFor": { /* only if new info found */ },
-  "selfEvaluation": { /* only if new info found */ },
-  "skillsAndSpecialties": { /* only if new info found */ },
-  "workExperience": [ /* only if new info found */ ],
-  "basicInformation": { /* only if new info found */ },
-  "educationBackground": { /* only if new info found */ }
-}`;
-
-    const userPrompt = `Review this resume text and find any missing information not captured in the previous extraction:
-
-RESUME TEXT:
-${resumeText}
-
-PREVIOUS EXTRACTION:
-${JSON.stringify(extractedData, null, 2)}
-
-Return JSON with any additional information found:`;
-
-    return [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
     ];
   }
 
