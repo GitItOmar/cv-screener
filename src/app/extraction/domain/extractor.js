@@ -35,19 +35,6 @@ export async function extractFromFile(file) {
     // Clean and prepare text for LLM processing
     const cleanedText = TextExtractor.cleanAndNormalize(rawText, extension);
 
-    // Save the cleaned text to a txt file for debugging purposes
-    try {
-      // Use Node.js fs/promises if available (works in server-side environments)
-      const { writeFile } = await import('fs/promises');
-      const path = `./debug_cleaned_resume.txt`;
-      await writeFile(path, cleanedText, 'utf8');
-    } catch (fsError) {
-      // If running in a non-Node environment (e.g., browser), skip file write
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Could not save cleaned text for debugging:', fsError.message);
-      }
-    }
-
     // Extract structured data using LLM with optimal hardcoded settings
     const extractedData = await llmExtractor.extractResumeData(cleanedText);
 

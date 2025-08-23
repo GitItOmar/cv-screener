@@ -45,8 +45,11 @@ export class ResumeEvaluator {
         educationBackground: educationScore,
       };
 
-      // Calculate overall score with critical gates
-      const overallScore = this.scorer.calculateOverallScore(categoryScores);
+      // Calculate overall score with critical gates and contact penalties
+      const overallScore = this.scorer.calculateOverallScore(
+        categoryScores,
+        resumeData.basicInformation,
+      );
 
       // Build comprehensive evaluation result
       const evaluation = {
@@ -112,6 +115,28 @@ export class ResumeEvaluator {
       !Array.isArray(resumeData.educationBackground.degrees)
     ) {
       throw new Error('educationBackground.degrees must be an array');
+    }
+
+    // Validate contact information - critical gate
+    this.validateContactInformation(resumeData.basicInformation);
+  }
+
+  /**
+   * Validate contact information for candidate reachability
+   * @param {Object} basicInformation - Basic information section
+   * @throws {Error} If both phone and email are missing
+   */
+  validateContactInformation(basicInformation) {
+    if (!basicInformation) {
+      throw new Error('Invalid resume: No contact information (both phone and email missing)');
+    }
+
+    const hasPhone = basicInformation.phone && basicInformation.phone.trim() !== '';
+    const hasEmail = basicInformation.email && basicInformation.email.trim() !== '';
+
+    // Critical gate: If both phone and email are missing, CV is invalid
+    if (!hasPhone && !hasEmail) {
+      throw new Error('Invalid resume: No contact information (both phone and email missing)');
     }
   }
 

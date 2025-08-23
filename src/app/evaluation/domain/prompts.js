@@ -128,7 +128,7 @@ Requirements:
 - Required language proficiency: C1 English or German with evidence
 
 Score 0-1 points considering:
-- Contact completeness (name, email, phone) (0.4 points)
+- Contact completeness (name, email, phone; phone is weighted at 0.04 points) (0.4 points total)
 - Location alignment with DACH region (0.3 points)
 - Language proficiency evidence (C1 English/German) (0.3 points)
 
