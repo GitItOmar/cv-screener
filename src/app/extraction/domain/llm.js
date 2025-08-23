@@ -27,11 +27,8 @@ class LLMExtractor {
     const config = { ...this.extractionOptions, ...options };
 
     try {
-      // Prepare text for LLM processing
-      const preparedText = TextExtractor.prepareForLLM(resumeText);
-
       // Extract basic text statistics for metadata
-      const textStats = TextExtractor.getTextStatistics(preparedText);
+      const textStats = TextExtractor.getTextStatistics(resumeText);
 
       // Perform extraction with retry logic
       let extractedData = null;
@@ -40,7 +37,7 @@ class LLMExtractor {
 
       for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
         try {
-          extractedData = await this.performExtraction(preparedText, config, attempt);
+          extractedData = await this.performExtraction(resumeText, config, attempt);
 
           if (extractedData) {
             break;

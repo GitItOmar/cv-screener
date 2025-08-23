@@ -56,9 +56,6 @@ export async function extractFromFile(file, options = {}) {
     // Clean and prepare text for LLM processing
     const cleanedText = TextExtractor.cleanAndNormalize(rawText, extension);
 
-    // Extract semantic structure for additional metadata
-    const semanticStructure = TextExtractor.extractSemanticStructure(cleanedText);
-
     // Extract structured data using LLM
     const extractedData = await llmExtractor.extractResumeData(cleanedText, {
       model: 'gpt-3.5-turbo',
@@ -83,7 +80,6 @@ export async function extractFromFile(file, options = {}) {
         processingTime,
         textLength: cleanedText.length,
         originalTextLength: rawText.length,
-        semanticStructure,
         llmStats: extractionStats,
         parser: {
           // FileParser statistics
@@ -105,7 +101,6 @@ export async function extractFromFile(file, options = {}) {
       debug: {
         parsedText,
         cleanedText,
-        semanticStructure,
         // Additional debugging info from FileParser
         parseResult: {
           success: parseResult.success,
