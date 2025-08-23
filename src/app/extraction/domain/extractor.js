@@ -22,25 +22,7 @@ export async function extractFromFile(file, options = {}) {
     const extension = file.name.split('.').pop().toLowerCase();
 
     // Create a FileParser instance with optimized settings for resume processing
-    const fileParser = new FileParser({
-      maxFileSize: 1024 * 1024, // 1MB for resumes
-      timeout: 45000, // 45 seconds
-      extractMetadata: true,
-      enableRecovery: true,
-      retryAttempts: 2,
-      allowPartialRecovery: true,
-      pdf: {
-        maxPages: 50, // Reasonable limit for resumes
-        cleanText: true,
-        normalizeText: true,
-      },
-      docx: {
-        preserveFormatting: false, // Focus on text content for LLM processing
-        includeHeaders: true,
-        includeFooters: false,
-        convertTables: true,
-      },
-    });
+    const fileParser = new FileParser();
 
     // Parse the file using the FileParser
     const parseResult = await fileParser.parse(file);
@@ -87,7 +69,6 @@ export async function extractFromFile(file, options = {}) {
           parsingTime: parseResult.processingTime,
           success: parseResult.success,
           parser: parseResult.parser,
-          quality: parseResult.quality,
         },
         fileInfo: {
           name: file.name,
@@ -106,9 +87,7 @@ export async function extractFromFile(file, options = {}) {
           success: parseResult.success,
           parser: parseResult.parser,
           processingTime: parseResult.processingTime,
-          quality: parseResult.quality,
-          validation: parseResult.validation,
-          performance: parseResult.performance,
+          timestamp: parseResult.timestamp,
         },
       },
     };

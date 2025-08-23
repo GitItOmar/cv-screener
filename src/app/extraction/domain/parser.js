@@ -20,18 +20,12 @@ class TextExtractor {
       case 'docx':
         cleaned = this.cleanDOCXText(cleaned);
         break;
-      case 'csv':
-        cleaned = this.cleanCSVText(cleaned);
-        break;
       default:
         cleaned = this.cleanGenericText(cleaned);
     }
 
     // Apply universal cleaning steps
     cleaned = this.applyUniversalCleaning(cleaned);
-
-    // Identify and preserve document structure
-    cleaned = this.identifyDocumentSections(cleaned);
 
     return cleaned;
   }
@@ -76,23 +70,6 @@ class TextExtractor {
     cleaned = cleaned.replace(/&lt;/g, '<');
     cleaned = cleaned.replace(/&gt;/g, '>');
     cleaned = cleaned.replace(/&quot;/g, '"');
-
-    return cleaned;
-  }
-
-  /**
-   * Clean text specifically from CSV files
-   * @param {string} text - CSV formatted text
-   * @returns {string} - Cleaned text
-   */
-  static cleanCSVText(text) {
-    let cleaned = text;
-
-    // CSV text is usually already well-structured
-    // Just ensure proper formatting
-    cleaned = cleaned.replace(/===\s*CANDIDATE\s*\d+\s*===/g, (match) => {
-      return `\n\n${match}\n`;
-    });
 
     return cleaned;
   }
@@ -204,127 +181,6 @@ class TextExtractor {
     normalized = normalized.replace(/[^\u0020-\u007E\u0080-\u00FF]/g, '?'); // Non-printable characters
 
     return normalized;
-  }
-
-  /**
-   * Identify and mark document sections
-   * @param {string} text - Text to analyze
-   * @returns {string} - Text with identified sections
-   */
-  static identifyDocumentSections(text) {
-    let structured = text;
-
-    // Common resume section patterns
-    const sectionPatterns = [
-      // Contact/Personal Information
-      {
-        pattern: /^(PERSONAL\s+INFORMATION|CONTACT\s+INFORMATION|CONTACT\s+DETAILS).*$/gim,
-        marker: '[SECTION:CONTACT]',
-      },
-
-      // Professional Summary/Objective
-      {
-        pattern: /^(PROFESSIONAL\s+SUMMARY|CAREER\s+SUMMARY|SUMMARY|OBJECTIVE|PROFILE).*$/gim,
-        marker: '[SECTION:SUMMARY]',
-      },
-
-      // Work Experience
-      {
-        pattern:
-          /^(WORK\s+EXPERIENCE|PROFESSIONAL\s+EXPERIENCE|EXPERIENCE|EMPLOYMENT\s+HISTORY|CAREER\s+HISTORY).*$/gim,
-        marker: '[SECTION:EXPERIENCE]',
-      },
-
-      // Skills
-      {
-        pattern: /^(SKILLS|TECHNICAL\s+SKILLS|CORE\s+COMPETENCIES|COMPETENCIES|EXPERTISE).*$/gim,
-        marker: '[SECTION:SKILLS]',
-      },
-
-      // Education
-      {
-        pattern: /^(EDUCATION|EDUCATIONAL\s+BACKGROUND|ACADEMIC\s+BACKGROUND|QUALIFICATIONS).*$/gim,
-        marker: '[SECTION:EDUCATION]',
-      },
-
-      // Certifications
-      {
-        pattern: /^(CERTIFICATIONS|CERTIFICATES|PROFESSIONAL\s+CERTIFICATIONS).*$/gim,
-        marker: '[SECTION:CERTIFICATIONS]',
-      },
-
-      // Projects
-      {
-        pattern: /^(PROJECTS|KEY\s+PROJECTS|NOTABLE\s+PROJECTS|PROJECT\s+EXPERIENCE).*$/gim,
-        marker: '[SECTION:PROJECTS]',
-      },
-
-      // Awards/Achievements
-      {
-        pattern: /^(AWARDS|ACHIEVEMENTS|HONORS|RECOGNITION).*$/gim,
-        marker: '[SECTION:AWARDS]',
-      },
-    ];
-
-    // Apply section markers
-    sectionPatterns.forEach(({ pattern, marker }) => {
-      structured = structured.replace(pattern, (match) => {
-        return `${marker}\n${match}`;
-      });
-    });
-
-    // Identify email addresses and phone numbers
-    structured = structured.replace(
-      /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
-      '[EMAIL:$1]',
-    );
-    structured = structured.replace(/(\+?[\d\s\-()]{10,})/g, (match) => {
-      // Only mark as phone if it looks like a phone number
-      if (match.replace(/[\s\-()]/g, '').length >= 10) {
-        return `[PHONE:${match.trim()}]`;
-      }
-      return match;
-    });
-
-    // Identify dates (common formats)
-    const datePatterns = [
-      /\b(\d{1,2}\/\d{1,2}\/\d{4})\b/g, // MM/DD/YYYY
-      /\b(\d{4}-\d{1,2}-\d{1,2})\b/g, // YYYY-MM-DD
-      /\b([A-Za-z]{3,9}\s+\d{4})\b/g, // Month YYYY
-      /\b(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4})\b/g, // DD Month YYYY
-    ];
-
-    datePatterns.forEach((pattern) => {
-      structured = structured.replace(pattern, '[DATE:$1]');
-    });
-
-    return structured;
-  }
-
-  /**
-   * Extract text statistics
-   * @param {string} text - Text to analyze
-   * @returns {Object} - Text statistics
-   */
-  static getTextStatistics(text) {
-    const stats = {
-      characterCount: text.length,
-      wordCount: text.split(/\s+/).filter((word) => word.length > 0).length,
-      lineCount: text.split('\n').length,
-      paragraphCount: text.split(/\n\s*\n/).length,
-      sentenceCount: text.split(/[.!?]+/).filter((s) => s.trim().length > 0).length,
-      averageWordsPerSentence: 0,
-      estimatedReadingTime: 0, // in minutes
-    };
-
-    if (stats.sentenceCount > 0) {
-      stats.averageWordsPerSentence = Math.round(stats.wordCount / stats.sentenceCount);
-    }
-
-    // Estimate reading time (average 200 words per minute)
-    stats.estimatedReadingTime = Math.ceil(stats.wordCount / 200);
-
-    return stats;
   }
 }
 

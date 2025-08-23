@@ -1,0 +1,28 @@
+{
+  "name": "@screening/llm-client",
+  "version": "1.0.0",
+  "description": "Unified LLM client supporting multiple providers (OpenAI, DeepSeek)",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "openai": "^4.20.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "keywords": [
+    "llm",
+    "openai",
+    "deepseek",
+    "gpt",
+    "ai",
+    "client"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

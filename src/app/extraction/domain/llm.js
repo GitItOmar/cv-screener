@@ -1,6 +1,5 @@
 import { resumeAgent } from '../../../lib/agents/resumeAgent.js';
 import PromptTemplates from '../../../lib/agents/promptTemplates.js';
-import TextExtractor from './parser.js';
 
 class LLMExtractor {
   constructor() {
@@ -27,9 +26,6 @@ class LLMExtractor {
     const config = { ...this.extractionOptions, ...options };
 
     try {
-      // Extract basic text statistics for metadata
-      const textStats = TextExtractor.getTextStatistics(resumeText);
-
       // Perform extraction with retry logic
       let extractedData = null;
       let lastError = null;
@@ -69,7 +65,6 @@ class LLMExtractor {
       extractedData.metadata = {
         ...extractedData.metadata,
         processingTime,
-        textStatistics: textStats,
         extractionConfig: {
           model: config.model,
           temperature: config.temperature,

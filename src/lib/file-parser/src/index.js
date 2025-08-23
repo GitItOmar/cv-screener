@@ -43,16 +43,6 @@ export {
   ErrorUtils,
 } from './utils/errors.js';
 
-export {
-  ProgressReporter,
-  createProgressFunction,
-  createThrottledProgress,
-  ProgressUtils,
-} from './utils/progress.js';
-
-// Export configuration
-export { default as defaultConfig } from './config/defaults.js';
-
 // Version info
 export const version = '1.0.0';
 export const supportedFormats = ['pdf', 'docx'];
