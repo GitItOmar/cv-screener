@@ -8,21 +8,51 @@ The current CV screening application successfully extracts structured informatio
 
 ### Proposed Solution
 
-Build a Resume Evaluator Agent that automatically scores extracted resume data against predefined job requirements using the methodology described in the research paper. The MVP will implement a simplified version without RAG (Retrieval-Augmented Generation) or vector database integration, focusing on a single job description with fixed evaluation criteria.
+Build a Resume Evaluator Agent that automatically scores extracted resume data against predefined job requirements using LLM-based evaluation. The MVP will implement intelligent evaluation without RAG (Retrieval-Augmented Generation) or vector database integration, focusing on a single Shopify Junior Developer job description with comprehensive evaluation criteria.
 
-The evaluator will assign scores based on five evaluation categories:
+The evaluator will use LLM-based scoring across five evaluation categories with embedded evaluation signals and critical requirement gates:
 
-1. **Self-evaluation** (0-1 points): Quality of candidate's summary and career goals
-2. **Skills & specialties** (0-2 points): Match between candidate skills and job requirements
-3. **Work experience** (0-4 points): Relevance and quality of professional experience
-4. **Basic information** (0-1 point): Completeness of contact and availability information
-5. **Educational background** (0-2 points): Relevance of educational qualifications
+**Core Categories (10-Point System):**
 
-Total scores will range from 0-10 points, normalized to a 0-100% scale for consistency with the existing review interface.
+1. **Self-evaluation** (0-1 points): Summary quality, career goals, plus **Passion** and **Communication** signals
+2. **Skills & specialties** (0-2 points): Technical skill matching, plus **Brains** and **Selectivity** signals
+3. **Work experience** (0-4 points): Experience relevance, plus **Hardcore**, **Communication**, and **Diversity** signals
+4. **Basic information** (0-1 point): Contact completeness, location alignment, and language proficiency evidence
+5. **Educational background** (0-2 points): Educational relevance, plus **Selectivity** and **Brains** signals
+
+**Critical Requirements (Applied as Gates):**
+
+- **Mandatory Shopify Experience**: Minimum 1 year required - caps score at 40% if missing
+- **Language Proficiency**: C1 level English or German with evidence - caps score at 50% if insufficient
+- **Onboarding Readiness**: Ability to adapt within 3 weeks - flagged for manual review
+
+**Evaluation Signals (Integrated Within Categories):**
+
+- **Passion**: Personal projects, open source, blogs, meetups
+- **Communication**: Client-facing work, leadership, clear presentation
+- **Brains**: Complex problem-solving, technical depth
+- **Selectivity**: Selective job history, certifications, competitions
+- **Hardcore**: Ambitious projects, startup experience
+- **Diversity**: Unique background, international experience
+
+Total scores range from 0-10 points, normalized to a 0-100% scale, with critical requirement gates applied to final percentage.
+
+### LLM-Based Evaluation Approach
+
+Instead of rule-based scoring, the system uses Large Language Model evaluation to:
+
+- **Contextual Understanding**: Interpret nuanced experience and skills that rule-based systems might miss
+- **Flexible Matching**: Find relevant but differently-worded competencies and experiences
+- **Evidence-Based Scoring**: Provide specific quotes and reasoning for each score
+- **Holistic Assessment**: Consider overall profile coherence and candidate potential
+- **Mandatory Gate Enforcement**: Strict evaluation of critical requirements (Shopify experience, language proficiency)
 
 ### Key Benefits
 
-- **Objective Scoring**: Consistent evaluation criteria applied to all candidates
+- **Intelligent Evaluation**: LLM provides nuanced understanding of candidate profiles beyond keyword matching
+- **Objective Scoring**: Consistent evaluation criteria applied to all candidates with detailed reasoning
+- **Critical Requirements**: Strict enforcement of mandatory Shopify experience and language proficiency
+- **Comprehensive Assessment**: Evaluation of soft skills and cultural fit indicators
 - **Time Efficiency**: Automated scoring reduces manual review time
 - **Data-Driven Decisions**: Quantified candidate assessment enables better hiring decisions
 - **Scalability**: Can evaluate hundreds of candidates quickly and consistently
@@ -30,8 +60,10 @@ Total scores will range from 0-10 points, normalized to a 0-100% scale for consi
 ### Risks
 
 - **Limited Job Specificity**: Without RAG, scoring criteria are generic rather than company-specific
-- **LLM Costs**: Additional API calls for evaluation processing
-- **Scoring Consistency**: LLM-based evaluation may have some variance between runs
+- **LLM Costs**: Additional API calls for evaluation processing (estimated $0.002-0.008 per evaluation)
+- **Scoring Consistency**: LLM-based evaluation may have some variance between runs (mitigated with temperature=0)
+- **Language Detection Accuracy**: May miss subtle language proficiency indicators
+- **Signal Detection**: Evaluation signals detection depends on resume quality and completeness
 
 ## Technical Analysis
 
@@ -75,14 +107,23 @@ The evaluator will integrate seamlessly into the existing pipeline:
 ```
 src/app/evaluation/
 ├── domain/
-│   ├── evaluator.js         # Main orchestrator - coordinates evaluation process
-│   ├── scorer.js            # Scoring logic for each of the 5 categories
-│   └── jobMatcher.js        # Job requirement matching algorithms
+│   ├── evaluator.js         # Main orchestrator - coordinates LLM evaluation process
+│   ├── scorer.js            # LLM-based scoring for each category + evaluation signals
+│   └── jobMatcher.js        # Job requirement matching and critical gate enforcement
 ├── api/
 │   └── route.js             # REST API endpoint for evaluation requests
 └── data/
-    └── jobRequirements.js   # Hardcoded job requirements for MVP
+    └── jobRequirements.js   # Shopify Junior Developer requirements with evaluation signals
 ```
+
+### LLM Integration Architecture
+
+The scorer will use structured LLM prompts for each evaluation component:
+
+- **Category Scoring**: Individual prompts for each of the 5 core categories
+- **Signal Detection**: Dedicated prompt to identify the 6 evaluation signals
+- **Critical Gates**: Specialized prompts for Shopify experience and language proficiency
+- **Response Parsing**: JSON-structured responses for consistent scoring
 
 ### Dependencies
 
