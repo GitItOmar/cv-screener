@@ -23,8 +23,6 @@ export async function extractFromFile(file) {
     // Parse the file using the FileParser
     const parseResult = await fileParser.parse(file);
 
-    console.log(parseResult);
-
     // Extract text content from the result
     const rawText = parseResult.text;
 
@@ -41,10 +39,6 @@ export async function extractFromFile(file) {
     return { extractedData };
   } catch (error) {
     // Enhanced error handling with FileParser errors
-    // Log error for debugging in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('File processing error:', error);
-    }
 
     // Check if it's a FileParser error with user-friendly messages
     if (error.getUserMessage && typeof error.getUserMessage === 'function') {

@@ -64,7 +64,12 @@ export class OpenAIProvider extends BaseProvider {
     const params = this.transformRequest({
       model: this.config.model,
       messages,
-      ...options,
+      temperature: this.config.temperature,
+      maxTokens: this.config.maxTokens,
+      topP: this.config.topP,
+      frequencyPenalty: this.config.frequencyPenalty,
+      presencePenalty: this.config.presencePenalty,
+      ...options, // Options override config defaults
     });
 
     try {
@@ -96,8 +101,13 @@ export class OpenAIProvider extends BaseProvider {
     const params = this.transformRequest({
       model: this.config.model,
       messages,
+      temperature: this.config.temperature,
+      maxTokens: this.config.maxTokens,
+      topP: this.config.topP,
+      frequencyPenalty: this.config.frequencyPenalty,
+      presencePenalty: this.config.presencePenalty,
       stream: true,
-      ...options,
+      ...options, // Options override config defaults
     });
 
     try {
@@ -262,8 +272,18 @@ export class OpenAIProvider extends BaseProvider {
       stream: params.stream,
     };
 
-    // Always use JSON response format
-    openAIParams.response_format = { type: 'json_object' };
+    // Add seed for deterministic responses if provided
+    if (params.seed !== undefined) {
+      openAIParams.seed = params.seed;
+    }
+
+    // Use JSON response format if specified, otherwise use default JSON mode
+    if (params.response_format) {
+      openAIParams.response_format = params.response_format;
+    } else {
+      // Default to JSON mode for backwards compatibility
+      openAIParams.response_format = { type: 'json_object' };
+    }
 
     // Handle function calling
     if (params.functions) {
