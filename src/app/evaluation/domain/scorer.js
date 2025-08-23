@@ -236,34 +236,6 @@ export class ResumeScorer {
     };
     return maxScores[category] || 1;
   }
-
-  /**
-   * Get scoring statistics
-   * @returns {Object} - Current scoring statistics
-   */
-  getScoringStats() {
-    return this.client.getCostTracking();
-  }
-
-  /**
-   * Reset scoring statistics
-   */
-  resetStats() {
-    this.client.resetCostTracking();
-  }
-
-  /**
-   * Test LLM connection
-   * @returns {Promise<boolean>} - Whether connection is working
-   */
-  async testConnection() {
-    try {
-      await this.client.initialize();
-      return await this.client.testConnection();
-    } catch {
-      return false;
-    }
-  }
 }
 
 export default ResumeScorer;
