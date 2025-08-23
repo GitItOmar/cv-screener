@@ -38,10 +38,7 @@ export class LLMClient {
     this.provider = this.createProvider(this.config.provider, this.config);
     await this.provider.initialize(this.config);
     this.initialized = true;
-
-    if (this.config.logging) {
-      console.log(`LLMClient initialized with ${this.config.provider} provider`);
-    }
+    // Logging removed
   }
 
   /**
@@ -83,13 +80,7 @@ export class LLMClient {
     try {
       this.requestCount++;
 
-      if (this.config.logging) {
-        console.log(`Request #${this.requestCount} to ${this.config.provider}:`, {
-          messages: messages.length,
-          model: this.config.model,
-          ...requestOptions,
-        });
-      }
+      // Logging removed
 
       const startTime = Date.now();
       const response = await this.provider.chat(messages, requestOptions);
@@ -105,21 +96,13 @@ export class LLMClient {
         });
       }
 
-      if (this.config.logging) {
-        console.log(`Request #${this.requestCount} completed:`, {
-          duration: `${duration}ms`,
-          tokens: response.usage?.totalTokens || 0,
-          finishReason: response.finishReason,
-        });
-      }
+      // Logging removed
 
       return response;
     } catch (error) {
       const parsedError = this.provider.parseError(error);
 
-      if (this.config.logging) {
-        console.error(`Request #${this.requestCount} failed:`, parsedError);
-      }
+      // Logging removed
 
       throw parsedError;
     }
@@ -149,17 +132,13 @@ export class LLMClient {
     try {
       this.requestCount++;
 
-      if (this.config.logging) {
-        console.log(`Stream request #${this.requestCount} to ${this.config.provider}`);
-      }
+      // Logging removed
 
       yield* this.provider.stream(messages, requestOptions);
     } catch (error) {
       const parsedError = this.provider.parseError(error);
 
-      if (this.config.logging) {
-        console.error(`Stream request #${this.requestCount} failed:`, parsedError);
-      }
+      // Logging removed
 
       throw parsedError;
     }
@@ -182,15 +161,10 @@ export class LLMClient {
   async switchProvider(config) {
     this.validateConfig(config);
 
-    const oldProvider = this.config.provider;
     this.config = { ...this.config, ...config };
 
     this.provider = this.createProvider(this.config.provider, this.config);
     await this.provider.initialize(this.config);
-
-    if (this.config.logging) {
-      console.log(`Switched from ${oldProvider} to ${this.config.provider}`);
-    }
   }
 
   /**
@@ -217,9 +191,7 @@ export class LLMClient {
     this.costCalculator.reset();
     this.requestCount = 0;
 
-    if (this.config.logging) {
-      console.log('Cost tracking reset');
-    }
+    // Logging removed
   }
 
   /**
@@ -295,8 +267,6 @@ export class LLMClient {
     this.initialized = false;
     this.provider = null;
 
-    if (this.config.logging) {
-      console.log('LLMClient destroyed');
-    }
+    // Logging removed
   }
 }

@@ -69,8 +69,12 @@ export class ResumeScorer {
   /**
    * Score basic information (0-1 scale) with language proficiency check
    */
-  async scoreBasicInformation(basicInformation) {
-    const prompt = EvaluationPrompts.buildBasicInfoPrompt(basicInformation, this.jobReqs);
+  async scoreBasicInformation(basicInformation, fullResumeData = null) {
+    const prompt = EvaluationPrompts.buildBasicInfoPrompt(
+      basicInformation,
+      this.jobReqs,
+      fullResumeData,
+    );
 
     try {
       const result = await this.evaluateWithLLM(prompt);

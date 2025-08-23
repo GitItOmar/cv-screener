@@ -3,12 +3,11 @@
  */
 
 import { validateFile } from './validator.js';
-import { extractFromFile } from '@/app/extraction/domain/extractor.js';
 
 /**
- * Handle file upload process with extraction
+ * Handle file upload process with extraction and evaluation
  * @param {File} file - File to upload
- * @returns {Promise<Object>} - Upload and extraction result
+ * @returns {Promise<Object>} - Upload, extraction, and evaluation result
  */
 export async function handleFileUpload(file) {
   // Validate the file
@@ -27,16 +26,33 @@ export async function handleFileUpload(file) {
   };
 
   try {
-    // Extract data from the uploaded file
-    const extractionResult = await extractFromFile(file);
+    // Call extraction API through HTTP
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('includeEvaluation', 'true'); // Request evaluation as well
+
+    // Use absolute URL for extraction API
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const extractionUrl = `${baseUrl}/extraction/api`;
+
+    const extractionResponse = await fetch(extractionUrl, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!extractionResponse.ok) {
+      const errorData = await extractionResponse.json();
+      throw new Error(errorData.details || errorData.error || 'Extraction failed');
+    }
+
+    const extractionResult = await extractionResponse.json();
 
     return {
       success: true,
       fileInfo: fileMetadata,
       extractedData: extractionResult.extractedData,
-      validation: extractionResult.validation,
-      statistics: extractionResult.statistics,
-      debug: extractionResult.debug,
+      evaluation: extractionResult.evaluation,
+      evaluationError: extractionResult.evaluationError,
     };
   } catch (extractionError) {
     // Return partial success with file info but extraction error

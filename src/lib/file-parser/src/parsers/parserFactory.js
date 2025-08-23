@@ -3,8 +3,8 @@
  * Provides unified interface for parsing different file types
  */
 
-import { detectFileType, validateFile } from '../utils/fileType.js';
-import { UnsupportedFormatError, ValidationError } from '../utils/errors.js';
+import { detectFileType } from '../utils/fileType.js';
+import { UnsupportedFormatError } from '../utils/errors.js';
 import PDFParser from './pdf.js';
 import DOCXParser from './docx.js';
 import { SUPPORTED_TYPES } from '../utils/fileType.js';
@@ -25,58 +25,11 @@ export default class ParserFactory {
   /**
    * Detect file type and create appropriate parser
    * @param {ArrayBuffer|Buffer|File} input - File input
-   * @param {Object} options - Factory options
    * @returns {Promise<Object>} Parser instance and file info
    */
-  static async createParser(input, options = {}) {
-    const {
-      allowedTypes = null, // Restrict to specific types
-      validateInput = true, // Validate input before creating parser
-      strictValidation = false, // Require high-confidence detection
-    } = options;
-
+  static async createParser(input) {
     try {
-      // Detect file type
       const fileInfo = await detectFileType(input);
-
-      // Validate confidence level
-      if (strictValidation && fileInfo.confidence === 'low') {
-        throw new UnsupportedFormatError(
-          `File type detection confidence too low: ${fileInfo.confidence}`,
-          {
-            detectedType: fileInfo.mimeType,
-            confidence: fileInfo.confidence,
-            method: fileInfo.method,
-          },
-        );
-      }
-
-      // Check if type is allowed
-      if (allowedTypes && !allowedTypes.includes(fileInfo.mimeType)) {
-        throw new UnsupportedFormatError(`File type ${fileInfo.mimeType} is not allowed`, {
-          detectedType: fileInfo.mimeType,
-          allowedTypes,
-        });
-      }
-
-      // Validate input if requested
-      if (validateInput) {
-        const validationResult = await validateFile(input, {
-          allowedTypes: allowedTypes ? allowedTypes : [fileInfo.mimeType],
-        });
-
-        if (!validationResult.valid) {
-          // Safely handle validation errors that might be null or contain null values
-          const safeErrors = (validationResult.errors || []).filter((error) => error != null);
-          const errorMessage =
-            safeErrors.length > 0 ? safeErrors.join(', ') : 'File validation failed';
-
-          throw new ValidationError(`File validation failed: ${errorMessage}`, {
-            validationErrors: safeErrors,
-            validationWarnings: validationResult.warnings || [],
-          });
-        }
-      }
 
       // Get parser class
       const ParserClass = PARSER_REGISTRY[fileInfo.parser];
@@ -93,11 +46,9 @@ export default class ParserFactory {
 
       return {
         parser,
-        fileInfo,
-        parserType: fileInfo.parser,
       };
     } catch (error) {
-      if (error instanceof UnsupportedFormatError || error instanceof ValidationError) {
+      if (error instanceof UnsupportedFormatError) {
         throw error;
       }
 
@@ -110,25 +61,14 @@ export default class ParserFactory {
   /**
    * Parse file with automatic type detection
    * @param {ArrayBuffer|Buffer|File} input - File input
-   * @param {Object} options - Parsing options
    * @returns {Promise<Object>} Parse result with file info
    */
-  static async parseFile(input, options = {}) {
-    const { parserOptions = {}, factoryOptions = {}, includeFileInfo = true } = options;
+  static async parseFile(input) {
+    // Create appropriate parser with hardcoded factory options
+    const { parser } = await this.createParser(input);
 
-    // Create appropriate parser
-    const { parser, fileInfo, parserType } = await this.createParser(input, factoryOptions);
-
-    // Parse the file
-    const result = await parser.parseWithValidation(input, parserOptions);
-
-    // Add file type information to result
-    if (includeFileInfo) {
-      result.fileInfo = {
-        ...fileInfo,
-        parserUsed: parserType,
-      };
-    }
+    // Parse the file (no options needed - everything hardcoded in parsers)
+    const result = await parser.parse(input);
 
     return result;
   }
@@ -234,16 +174,6 @@ export default class ParserFactory {
   }
 
   /**
-   * Validate file without parsing
-   * @param {ArrayBuffer|Buffer|File} input - File input
-   * @param {Object} options - Validation options
-   * @returns {Promise<Object>} Validation result
-   */
-  static async validateFile(input, options = {}) {
-    return validateFile(input, options);
-  }
-
-  /**
    * Batch process multiple files
    * @param {Array} files - Array of file inputs
    * @param {Object} options - Processing options
@@ -254,7 +184,6 @@ export default class ParserFactory {
       concurrency = 3, // Process files concurrently
       stopOnError = false, // Continue processing on individual errors
       progressCallback = null,
-      ...processingOptions
     } = options;
 
     const results = [];
@@ -269,7 +198,7 @@ export default class ParserFactory {
         const fileIndex = i + batchIndex;
 
         try {
-          const result = await this.parseFile(file, processingOptions);
+          const result = await this.parseFile(file);
           processedCount++;
 
           if (progressCallback) {
@@ -309,9 +238,6 @@ export default class ParserFactory {
     return {
       results: results.map((r) => r.result),
       errors,
-      totalProcessed: processedCount,
-      successCount: results.filter((r) => !r.error).length,
-      errorCount: errors.length,
     };
   }
 }

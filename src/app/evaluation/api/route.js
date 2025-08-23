@@ -3,7 +3,7 @@
  * Handles resume evaluation requests
  */
 
-import { resumeEvaluator } from '../../domain/evaluator.js';
+import { resumeEvaluator } from '../domain/evaluator.js';
 
 export async function POST(request) {
   const startTime = Date.now();

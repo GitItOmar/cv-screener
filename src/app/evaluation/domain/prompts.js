@@ -120,11 +120,8 @@ Provide score and reasoning. Return 0 if no Shopify experience is found.`,
   /**
    * Build basic info LLM prompt
    */
-  static buildBasicInfoPrompt(basicInformation, jobRequirements) {
-    return [
-      {
-        role: 'system',
-        content: `You are evaluating basic information for a Shopify Junior Developer role.
+  static buildBasicInfoPrompt(basicInformation, jobRequirements, fullResumeData = null) {
+    const systemPrompt = `You are evaluating basic information for a Shopify Junior Developer role.
 
 Requirements:
 - Preferred locations: ${jobRequirements.location.preferred.join(', ')}
@@ -135,25 +132,69 @@ Score 0-1 points considering:
 - Location alignment with DACH region (0.3 points)
 - Language proficiency evidence (C1 English/German) (0.3 points)
 
-Look for language evidence in:
+LANGUAGE PROFICIENCY EVALUATION:
+Look for explicit evidence first:
 - Explicit proficiency statements
-- Education in English/German-speaking countries
-- Work experience in these countries
 - Language certifications
+- International experience requiring language skills
+
+NATIVE LANGUAGE INFERENCE:
+If no explicit evidence is found, apply sophisticated inference for native speakers:
+
+German Native Indicators (grant full 0.3 points if 2+ indicators present):
+- German name (surnames like Müller, Schmidt, Weber, etc.)
+- Abitur or German high school diploma
+- All education in Germany (universities, schools)
+- All/majority work experience in German companies
+- Lives in Germany with German address
+- Consistent presence in Germany throughout career
+
+English Native Indicators (grant full 0.3 points if 2+ indicators present):
+- English/Anglo name combined with education/work in English-speaking countries
+- High school diploma from UK/US/Canada/Australia
+- All education in English-speaking countries
+- All/majority work experience in English-speaking companies
+- Lives in English-speaking country
+
+SCORING LOGIC:
+- Explicit C1+ evidence: Full 0.3 points
+- 2+ Native indicators: Full 0.3 points (native = C2 level, exceeds C1 requirement)
+- 1 Native indicator: 0.2 points
+- Unclear/insufficient evidence: 0.1 points
 
 Return JSON format:
 {
   "score": 0.X,
   "reasoning": "detailed explanation",
   "language_evidence": "description of language proficiency evidence found"
-}`,
+}`;
+
+    const userData = fullResumeData
+      ? `Evaluate this basic information with full resume context:
+
+BASIC INFORMATION:
+${JSON.stringify(basicInformation, null, 2)}
+
+EDUCATION BACKGROUND (for language inference):
+${JSON.stringify(fullResumeData.educationBackground, null, 2)}
+
+WORK EXPERIENCE (for language inference):
+${JSON.stringify(fullResumeData.workExperience, null, 2)}
+
+Provide score and reasoning.`
+      : `Evaluate this basic information:
+${JSON.stringify(basicInformation, null, 2)}
+
+Provide score and reasoning.`;
+
+    return [
+      {
+        role: 'system',
+        content: systemPrompt,
       },
       {
         role: 'user',
-        content: `Evaluate this basic information:
-${JSON.stringify(basicInformation, null, 2)}
-
-Provide score and reasoning.`,
+        content: userData,
       },
     ];
   }

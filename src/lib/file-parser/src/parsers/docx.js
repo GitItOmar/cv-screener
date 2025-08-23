@@ -18,30 +18,13 @@ export default class DOCXParser extends BaseParser {
   ];
   static extensions = ['.docx', '.docm'];
 
-  static defaultOptions = {
-    preserveWhitespace: true,
-    preserveLineBreaks: true,
-    extractImages: false,
-    includeEmbeddedStyleMap: false,
-    timeout: 30000, // 30 seconds timeout
-    convertImage: null, // Function to convert images (if needed)
-    ignoreEmptyParagraphs: false,
-    styleMap: [], // Custom style mappings
-    transformDocument: null, // Document transformation function
-    extractMetadata: true,
-    convertTables: true,
-    preserveTableStructure: true,
-  };
-
   /**
    * Parse DOCX file and extract text content
    * @param {ArrayBuffer|Buffer|File} input - DOCX file data
-   * @param {Object} options - Parsing options
    * @returns {Promise<Object>} Parsed content and metadata
    */
-  async parse(input, options = {}) {
-    const mergedOptions = { ...this.config, ...options };
-    const progressCallback = mergedOptions.onProgress;
+  async parse(input) {
+    const progressCallback = null; // No progress callbacks in minimal version
 
     try {
       // Convert input to Buffer
@@ -60,8 +43,8 @@ export default class DOCXParser extends BaseParser {
         progressCallback(10, 'Initializing DOCX parser');
       }
 
-      // Configure mammoth options
-      const mammothOptions = this._buildMammothOptions(mergedOptions);
+      // Configure mammoth options with hardcoded settings
+      const mammothOptions = this._buildMammothOptions();
 
       if (progressCallback) {
         progressCallback(20, 'Loading DOCX document');
@@ -74,8 +57,10 @@ export default class DOCXParser extends BaseParser {
         progressCallback(60, 'Extracting text content');
       }
 
-      // Process the extracted content
-      const processedContent = this._processExtractedContent(result, mergedOptions);
+      // Process the extracted content with hardcoded options
+      const processedContent = this._processExtractedContent(result, {
+        convertTables: true,
+      });
 
       if (progressCallback) {
         progressCallback(80, 'Processing metadata');
@@ -120,58 +105,17 @@ export default class DOCXParser extends BaseParser {
   }
 
   /**
-   * Extract enhanced metadata from DOCX file
-   * @param {ArrayBuffer|Buffer|File} input - DOCX file data
-   * @param {Object} options - Extraction options
-   * @returns {Promise<Object>} Enhanced metadata
-   */
-  async extractMetadata(input, options = {}) {
-    const baseMetadata = await super.extractMetadata(input, options);
-
-    try {
-      // Quick metadata extraction
-      let buffer;
-      if (input instanceof File) {
-        buffer = Buffer.from(await input.arrayBuffer());
-      } else if (input instanceof ArrayBuffer) {
-        buffer = Buffer.from(input);
-      } else {
-        buffer = input;
-      }
-
-      const mammothOptions = this._buildMammothOptions({ extractMetadata: true });
-      const result = await this._parseWithMammoth(buffer, mammothOptions);
-      const docxMetadata = this._extractDocumentMetadata(result);
-
-      return {
-        ...baseMetadata,
-        ...docxMetadata,
-        format: 'docx',
-        hasImages: docxMetadata.images > 0,
-        hasTables: docxMetadata.tables > 0,
-      };
-    } catch (error) {
-      // Return basic metadata if DOCX-specific extraction fails
-      return {
-        ...baseMetadata,
-        format: 'docx',
-        error: `Metadata extraction failed: ${error.message}`,
-      };
-    }
-  }
-
-  /**
    * Parse DOCX using mammoth with error handling
    * @param {Buffer} buffer - DOCX buffer
-   * @param {Object} options - Mammoth options
+   * @param {Object} options - Hardcoded mammoth options
    * @returns {Promise<Object>} Parsed result
    * @private
    */
   async _parseWithMammoth(buffer, options) {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error(`DOCX parsing timed out after ${this.config.timeout}ms`));
-      }, this.config.timeout);
+        reject(new Error(`DOCX parsing timed out after 45000ms`));
+      }, 45000); // Hardcoded timeout
 
       mammoth
         .convertToHtml({ buffer }, options)
@@ -187,21 +131,16 @@ export default class DOCXParser extends BaseParser {
   }
 
   /**
-   * Build mammoth configuration options
-   * @param {Object} options - Parser options
+   * Build mammoth configuration options (hardcoded for CV processing)
    * @returns {Object} Mammoth options
    * @private
    */
-  _buildMammothOptions(options) {
+  _buildMammothOptions() {
+    // Hardcoded mammoth options for CV processing
     const mammothOptions = {
-      convertImage: options.convertImage || undefined,
-      ignoreEmptyParagraphs: options.ignoreEmptyParagraphs,
-      styleMap: options.styleMap || [],
-    };
-
-    // Add default style mappings for better structure preservation
-    if (!options.styleMap || options.styleMap.length === 0) {
-      mammothOptions.styleMap = [
+      convertImage: undefined, // No image conversion needed for CV
+      ignoreEmptyParagraphs: true, // Ignore empty paragraphs for cleaner text
+      styleMap: [
         "p[style-name='Heading 1'] => h1:fresh",
         "p[style-name='Heading 2'] => h2:fresh",
         "p[style-name='Heading 3'] => h3:fresh",
@@ -212,13 +151,8 @@ export default class DOCXParser extends BaseParser {
         "p[style-name='Subtitle'] => h2.subtitle:fresh",
         "r[style-name='Strong'] => strong",
         "r[style-name='Emphasis'] => em",
-      ];
-    }
-
-    // Transform document if specified
-    if (options.transformDocument) {
-      mammothOptions.transformDocument = options.transformDocument;
-    }
+      ],
+    };
 
     return mammothOptions;
   }
@@ -226,11 +160,10 @@ export default class DOCXParser extends BaseParser {
   /**
    * Process extracted content from mammoth
    * @param {Object} result - Mammoth result
-   * @param {Object} options - Processing options
    * @returns {Object} Processed content
    * @private
    */
-  _processExtractedContent(result, options) {
+  _processExtractedContent(result) {
     const htmlContent = result.value || '';
 
     // Convert HTML to plain text with structure preservation
@@ -240,7 +173,7 @@ export default class DOCXParser extends BaseParser {
     const structure = this._extractStructure(htmlContent);
 
     // Extract tables
-    const tables = options.convertTables ? this._extractTables(htmlContent) : [];
+    const tables = this._extractTables(htmlContent); // Always extract tables for CV processing
 
     // Extract images info
     const images = this._extractImageInfo(result.messages || []);

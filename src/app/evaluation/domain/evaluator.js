@@ -32,7 +32,7 @@ export class ResumeEvaluator {
         this.scorer.scoreSelfEvaluation(resumeData.selfEvaluation),
         this.scorer.scoreSkillsSpecialties(resumeData.skillsAndSpecialties),
         this.scorer.scoreWorkExperience(resumeData.workExperience),
-        this.scorer.scoreBasicInformation(resumeData.basicInformation),
+        this.scorer.scoreBasicInformation(resumeData.basicInformation, resumeData),
         this.scorer.scoreEducationBackground(resumeData.educationBackground),
       ]);
 

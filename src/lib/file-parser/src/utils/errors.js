@@ -560,14 +560,6 @@ export class ErrorUtils {
       },
     };
 
-    // Add performance timing if available
-    if (context.startTime) {
-      errorContext.timing = {
-        duration: Date.now() - context.startTime,
-        startTime: context.startTime,
-      };
-    }
-
     return errorContext;
   }
 

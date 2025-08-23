@@ -24,35 +24,35 @@ const result = await FileParser.parse(file);
 
 console.log(result.data.text); // Extracted text
 console.log(result.parser); // Parser used ('pdf' or 'docx')
-console.log(result.processingTime); // Time taken to parse
+console.log(result.data.text); // Extracted text content
 ```
 
 ## Configuration
 
-The package uses hardcoded configurations optimized for resume processing:
+The package has **zero configuration and zero validation** - all settings are hardcoded and optimized for CV/resume processing:
 
-- **File size limit**: 1MB (suitable for resumes)
-- **Timeout**: 45 seconds
-- **PDF**: Max 50 pages, text cleaning enabled
-- **DOCX**: Headers included, footers excluded, tables converted
+- **No validation**: Files are parsed directly without size, type, or content validation
+- **Timeout**: 45 seconds for parsing operations
+- **PDF**: Max 50 pages processed, text cleaning and normalization enabled
+- **DOCX**: Headers included, empty paragraphs ignored, tables converted
+- **Error recovery**: Always enabled with 2 retry attempts
 
 ## API Reference
 
-### `FileParser.parse(file, options?)`
+### `FileParser.parse(file)`
 
 Parse a file and extract its text content.
 
 **Parameters:**
 
 - `file` (File|ArrayBuffer|Buffer): The file to parse
-- `options` (Object, optional): Override default configurations
 
 **Returns:** Promise\<Object>
 
 - `success` (boolean): Whether parsing succeeded
 - `data` (Object): Parsed content with `text` property
 - `parser` (string): Parser used ('pdf' or 'docx')
-- `processingTime` (number): Processing time in milliseconds
+
 - `file` (Object): File information (name, size, type)
 - `timestamp` (string): ISO timestamp of parsing
 
@@ -62,6 +62,7 @@ Parse a file and extract its text content.
 const result = await FileParser.parse(file);
 if (result.success) {
   console.log('Text:', result.data.text);
+  console.log('Parser used:', result.parser); // 'pdf' or 'docx'
 }
 ```
 
