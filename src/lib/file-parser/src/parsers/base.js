@@ -10,7 +10,6 @@ import {
   ErrorUtils,
 } from '../utils/errors.js';
 import { validateFile } from '../utils/fileType.js';
-import defaultConfig from '../config/defaults.js';
 
 // Node.js globals
 const { setTimeout, clearTimeout } = globalThis;
@@ -405,12 +404,37 @@ export default class BaseParser {
   }
 
   /**
-   * Merge configuration with defaults
+   * Merge configuration with hardcoded defaults
    * @private
    */
   _mergeConfig(options) {
+    // Hardcoded configuration optimized for resume processing
+    const baseConfig = {
+      maxFileSize: 1024 * 1024, // 1MB
+      timeout: 45000, // 45 seconds
+      extractMetadata: true,
+      enableRecovery: true,
+      retryAttempts: 2,
+      allowPartialRecovery: true,
+      validation: {
+        checkMagicNumbers: true,
+        allowedMimeTypes: [
+          'application/pdf',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ],
+        allowedExtensions: ['.pdf', '.docx'],
+      },
+      errorHandling: {
+        retryAttempts: 2,
+        retryDelay: 1000,
+        enableRecovery: true,
+        allowPartialRecovery: true,
+        partialThreshold: 0.1,
+      },
+    };
+
     return {
-      ...defaultConfig,
+      ...baseConfig,
       ...this.constructor.defaultOptions,
       ...options,
     };
