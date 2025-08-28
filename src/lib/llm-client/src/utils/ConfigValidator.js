@@ -123,31 +123,6 @@ export class ConfigValidator {
       this.errors.push('API key cannot be empty');
       return;
     }
-
-    // Provider-specific API key validation
-    if (config.provider) {
-      this.validateApiKeyForProvider(config.apiKey, config.provider);
-    }
-  }
-
-  /**
-   * Validate API key format for specific provider
-   * @param {string} apiKey - API key
-   * @param {string} provider - Provider name
-   * @private
-   */
-  validateApiKeyForProvider(apiKey, provider) {
-    const patterns = {
-      openai: /^sk-[a-zA-Z0-9]{48,}$/,
-      deepseek: /^sk-[a-zA-Z0-9]{32,}$/,
-    };
-
-    const pattern = patterns[provider.toLowerCase()];
-    if (pattern && !pattern.test(apiKey)) {
-      this.warnings.push(
-        `API key format may be invalid for provider '${provider}'. Expected pattern: ${pattern}`,
-      );
-    }
   }
 
   /**

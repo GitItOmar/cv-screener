@@ -18,11 +18,6 @@ export async function handleFileUpload(file) {
     throw new Error(validation.error);
   }
 
-  // Debug logging for development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Processing file:', file.name, 'Size:', file.size);
-  }
-
   // Prepare file metadata
   const fileMetadata = {
     name: file.name,
