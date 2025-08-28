@@ -27,7 +27,9 @@ REQUIRED JSON OUTPUT STRUCTURE:
     "summary": "string or null",
     "careerHighlights": ["array", "of", "highlights"],
     "strengths": ["array", "of", "strengths"],
-    "goals": "string or null"
+    "goals": "string or null",
+    "personalProjects": ["array", "of", "personal", "projects"],
+    "learningInitiatives": ["array", "of", "learning", "activities"]
   },
   "skillsAndSpecialties": {
     "technical": ["array", "of", "technical", "skills"],
@@ -87,6 +89,8 @@ LEVEL CLASSIFICATION GUIDELINES:
 EXTRACTION GUIDELINES:
 1. Position Applied For: Look for job titles mentioned, target roles, or infer from experience level
 2. Self-Evaluation: Extract from summary, objective, or personal statements
+   - Personal Projects: Look for side projects, portfolio items, open source contributions, hackathons
+   - Learning Initiatives: Extract courses, certifications, bootcamps, self-directed learning, online training
 3. Skills & Specialties: Categorize technical skills appropriately (languages vs frameworks vs tools)
    - For languages field: Extract spoken/written languages with proficiency levels
    - Look for explicit proficiency statements (e.g., "Fluent in English", "C1 German")
@@ -165,6 +169,8 @@ Return the JSON object now:`;
             careerHighlights: { type: 'array', items: { type: 'string' } },
             strengths: { type: 'array', items: { type: 'string' } },
             goals: { type: ['string', 'null'] },
+            personalProjects: { type: 'array', items: { type: 'string' } },
+            learningInitiatives: { type: 'array', items: { type: 'string' } },
           },
         },
         skillsAndSpecialties: {
