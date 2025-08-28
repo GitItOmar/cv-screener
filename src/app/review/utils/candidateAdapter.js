@@ -7,7 +7,7 @@
  * @param {Object} processedCandidate - Candidate with extraction and evaluation data
  * @returns {Object} - Formatted candidate for review UI
  */
-export function adaptCandidateForUI(processedCandidate) {
+function adaptCandidateForUI(processedCandidate) {
   const { extractedData, evaluation, evaluationError, fileInfo } = processedCandidate;
   const basicInfo = extractedData?.basicInformation || {};
   const workExp = extractedData?.workExperience || [];
