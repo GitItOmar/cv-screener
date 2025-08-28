@@ -137,6 +137,17 @@ function extractSkills(skillsData) {
     skills.push(...skillsData.tools);
   }
 
+  // Add spoken/written languages
+  if (skillsData.languages && Array.isArray(skillsData.languages)) {
+    skillsData.languages.forEach((lang) => {
+      if (lang.name && lang.proficiency) {
+        skills.push(`${lang.name} (${lang.proficiency})`);
+      } else if (lang.name) {
+        skills.push(lang.name);
+      }
+    });
+  }
+
   // Add any other skills mentioned
   if (skillsData.other && Array.isArray(skillsData.other)) {
     skills.push(...skillsData.other);

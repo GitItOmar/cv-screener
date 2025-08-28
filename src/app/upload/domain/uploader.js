@@ -44,20 +44,11 @@ export async function handleFileUpload(file) {
 
       if (evaluationResult.success) {
         evaluation = evaluationResult.data;
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Evaluation successful. Score:', `${evaluation.overall?.finalPercentage}%`);
-        }
       } else {
         evaluationError = evaluationResult.error;
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Evaluation failed:', evaluationError);
-        }
       }
     } catch (evalError) {
       evaluationError = `Evaluation failed: ${evalError.message}`;
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Evaluation exception:', evalError.message);
-      }
     }
 
     return {

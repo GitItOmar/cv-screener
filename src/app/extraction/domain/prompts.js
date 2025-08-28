@@ -35,7 +35,13 @@ REQUIRED JSON OUTPUT STRUCTURE:
     "tools": ["array", "of", "tools"],
     "domains": ["array", "of", "domain", "expertise"],
     "softSkills": ["array", "of", "soft", "skills"],
-    "certifications": ["array", "of", "certifications"]
+    "certifications": ["array", "of", "certifications"],
+    "languages": [
+      {
+        "name": "string",
+        "proficiency": "native|fluent|advanced|intermediate|basic"
+      }
+    ]
   },
   "workExperience": [
     {
@@ -82,6 +88,9 @@ EXTRACTION GUIDELINES:
 1. Position Applied For: Look for job titles mentioned, target roles, or infer from experience level
 2. Self-Evaluation: Extract from summary, objective, or personal statements
 3. Skills & Specialties: Categorize technical skills appropriately (languages vs frameworks vs tools)
+   - For languages field: Extract spoken/written languages with proficiency levels
+   - Look for explicit proficiency statements (e.g., "Fluent in English", "C1 German")
+   - Common proficiency indicators: native, fluent, advanced, intermediate, basic
 4. Work Experience: Extract in reverse chronological order, calculate duration accurately
 5. Basic Information: Extract contact details and professional profiles
 6. Education: Include formal degrees, relevant coursework, and significant projects
@@ -167,6 +176,19 @@ Return the JSON object now:`;
             domains: { type: 'array', items: { type: 'string' } },
             softSkills: { type: 'array', items: { type: 'string' } },
             certifications: { type: 'array', items: { type: 'string' } },
+            languages: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  proficiency: {
+                    type: 'string',
+                    enum: ['native', 'fluent', 'advanced', 'intermediate', 'basic'],
+                  },
+                },
+              },
+            },
           },
         },
         workExperience: {

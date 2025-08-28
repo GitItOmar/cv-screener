@@ -42,12 +42,16 @@ export class ResumeScorer {
   /**
    * Score skills and specialties (0-2 scale) with Brains & Selectivity signals
    */
-  async scoreSkillsSpecialties(skillsSpecialties) {
+  async scoreSkillsSpecialties(skillsSpecialties, fullResumeData = null) {
     // Check for Shopify-related keywords in skills
     const skillsText = JSON.stringify(skillsSpecialties);
     const keywordScan = keywordDetector.scanText(skillsText);
 
-    const prompt = EvaluationPrompts.buildSkillsPrompt(skillsSpecialties, this.jobReqs);
+    const prompt = EvaluationPrompts.buildSkillsPrompt(
+      skillsSpecialties,
+      this.jobReqs,
+      fullResumeData,
+    );
 
     try {
       const result = await this.evaluateWithLLM(prompt);
@@ -106,14 +110,10 @@ export class ResumeScorer {
   }
 
   /**
-   * Score basic information (0-1 scale) with language proficiency check
+   * Score basic information (0-1 scale)
    */
-  async scoreBasicInformation(basicInformation, fullResumeData = null) {
-    const prompt = EvaluationPrompts.buildBasicInfoPrompt(
-      basicInformation,
-      this.jobReqs,
-      fullResumeData,
-    );
+  async scoreBasicInformation(basicInformation) {
+    const prompt = EvaluationPrompts.buildBasicInfoPrompt(basicInformation, this.jobReqs);
 
     try {
       const result = await this.evaluateWithLLM(prompt);

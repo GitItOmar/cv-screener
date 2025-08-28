@@ -30,9 +30,9 @@ class ResumeEvaluator {
         educationScore,
       ] = await Promise.all([
         this.scorer.scoreSelfEvaluation(resumeData.selfEvaluation),
-        this.scorer.scoreSkillsSpecialties(resumeData.skillsAndSpecialties),
+        this.scorer.scoreSkillsSpecialties(resumeData.skillsAndSpecialties, resumeData),
         this.scorer.scoreWorkExperience(resumeData.workExperience),
-        this.scorer.scoreBasicInformation(resumeData.basicInformation, resumeData),
+        this.scorer.scoreBasicInformation(resumeData.basicInformation),
         this.scorer.scoreEducationBackground(resumeData.educationBackground),
       ]);
 

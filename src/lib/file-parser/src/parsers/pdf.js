@@ -34,20 +34,8 @@ export default class PDFParser extends BaseParser {
         throw new ParseError('Invalid input type for PDF parsing');
       }
 
-      // Suppress the "Setting up fake worker" warning from pdf2json
-      const originalWarn = console.warn;
-      console.warn = (...args) => {
-        if (args[0] && typeof args[0] === 'string' && args[0].includes('Setting up fake worker')) {
-          return;
-        }
-        originalWarn.apply(console, args);
-      };
-
       // Create PDF parser instance
       const pdfParser = new PDF2JsonParser(this, 1);
-
-      // Restore original console.warn after parser creation
-      console.warn = originalWarn;
 
       // Parse PDF with promise wrapper
       const textContent = await this._parseWithPDFParser(pdfParser, buffer);
