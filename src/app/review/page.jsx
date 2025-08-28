@@ -41,138 +41,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-
-// Mock candidate data
-const mockCandidates = [
-  {
-    id: '1',
-    name: 'Sarah Chen',
-    role: 'Senior Frontend Developer',
-    location: 'San Francisco, CA',
-    years: 5,
-    score: 92,
-    matchedSkills: ['React', 'TypeScript', 'Next.js'],
-    otherSkills: ['Vue.js', 'Node.js', 'GraphQL', 'AWS'],
-    achievements: [
-      'Led frontend architecture for 50M+ user platform',
-      'Reduced bundle size by 40% through optimization',
-      'Mentored 8 junior developers across 2 teams',
-    ],
-    resumeUrl: '/cv/sarah-chen.pdf',
-  },
-  {
-    id: '2',
-    name: 'Marcus Johnson',
-    role: 'Full Stack Developer',
-    location: 'Austin, TX',
-    years: 3,
-    score: 78,
-    matchedSkills: ['JavaScript', 'React', 'Node.js'],
-    otherSkills: ['Python', 'MongoDB', 'Docker', 'Kubernetes'],
-    achievements: [
-      'Built microservices handling 1M+ daily requests',
-      'Implemented CI/CD pipeline reducing deployment time by 60%',
-      'Contributed to 3 open-source projects with 500+ stars',
-    ],
-    resumeUrl: '/cv/marcus-johnson.pdf',
-  },
-  {
-    id: '3',
-    name: 'Elena Rodriguez',
-    role: 'Backend Developer',
-    location: 'Remote',
-    years: 7,
-    score: 88,
-    matchedSkills: ['Python', 'Django', 'PostgreSQL'],
-    otherSkills: ['Redis', 'Elasticsearch', 'Kafka', 'Terraform'],
-    achievements: [
-      'Designed scalable API serving 10M+ requests/day',
-      'Reduced database query time by 70% through optimization',
-      'Led migration of legacy system to cloud architecture',
-    ],
-    resumeUrl: '/cv/elena-rodriguez.pdf',
-  },
-  {
-    id: '4',
-    name: 'David Kim',
-    role: 'DevOps Engineer',
-    location: 'Seattle, WA',
-    years: 4,
-    score: 85,
-    matchedSkills: ['AWS', 'Docker', 'Kubernetes'],
-    otherSkills: ['Terraform', 'Jenkins', 'Prometheus', 'Grafana'],
-    achievements: [
-      'Automated deployment pipeline for 20+ microservices',
-      'Achieved 99.9% uptime across production environments',
-      'Reduced infrastructure costs by 35% through optimization',
-    ],
-    resumeUrl: '/cv/david-kim.pdf',
-  },
-  {
-    id: '5',
-    name: 'Priya Patel',
-    role: 'Mobile Developer',
-    location: 'New York, NY',
-    years: 6,
-    score: 90,
-    matchedSkills: ['React Native', 'iOS', 'Android'],
-    otherSkills: ['Swift', 'Kotlin', 'Firebase', 'Redux'],
-    achievements: [
-      'Published 5 apps with 2M+ combined downloads',
-      'Improved app performance by 50% through native optimization',
-      'Led cross-platform development team of 6 engineers',
-    ],
-    resumeUrl: '/cv/priya-patel.pdf',
-  },
-  {
-    id: '6',
-    name: 'Alex Thompson',
-    role: 'Frontend Developer',
-    location: 'London, UK',
-    years: 2,
-    score: 72,
-    matchedSkills: ['React', 'CSS', 'JavaScript'],
-    otherSkills: ['Sass', 'Webpack', 'Jest', 'Cypress'],
-    achievements: [
-      'Redesigned user interface increasing conversion by 25%',
-      'Implemented accessibility features meeting WCAG 2.1 AA',
-      'Built component library used across 4 product teams',
-    ],
-    resumeUrl: '/cv/alex-thompson.pdf',
-  },
-  {
-    id: '7',
-    name: 'Maria Santos',
-    role: 'Data Engineer',
-    location: 'Toronto, CA',
-    years: 5,
-    score: 83,
-    matchedSkills: ['Python', 'Apache Spark', 'SQL'],
-    otherSkills: ['Airflow', 'Snowflake', 'dbt', 'Kafka'],
-    achievements: [
-      'Built data pipeline processing 100TB+ daily',
-      'Reduced data processing time from hours to minutes',
-      'Designed real-time analytics dashboard for C-suite',
-    ],
-    resumeUrl: '/cv/maria-santos.pdf',
-  },
-  {
-    id: '8',
-    name: 'James Wilson',
-    role: 'Senior Backend Developer',
-    location: 'Chicago, IL',
-    years: 8,
-    score: 94,
-    matchedSkills: ['Java', 'Spring Boot', 'Microservices'],
-    otherSkills: ['Redis', 'RabbitMQ', 'MySQL', 'Jenkins'],
-    achievements: [
-      'Architected distributed system handling 50M+ transactions',
-      'Led technical migration affecting 100+ services',
-      'Mentored 12 developers and established coding standards',
-    ],
-    resumeUrl: '/cv/james-wilson.pdf',
-  },
-];
+import { adaptCandidatesForUI } from './utils/candidateAdapter';
 
 const getScoreBadge = (score) => {
   if (score >= 90) return { label: 'Excellent', variant: 'default', color: 'bg-green-500' };
@@ -181,12 +50,15 @@ const getScoreBadge = (score) => {
 };
 
 function CandidateDetails({ candidate }) {
+  const hasEvaluation = candidate?.evaluation?.categories;
+
   return (
     <Tabs defaultValue='overview' className='w-full'>
-      <TabsList className='grid w-full grid-cols-4'>
+      <TabsList className={`grid w-full ${hasEvaluation ? 'grid-cols-5' : 'grid-cols-4'}`}>
         <TabsTrigger value='overview'>Overview</TabsTrigger>
         <TabsTrigger value='skills'>Skills</TabsTrigger>
         <TabsTrigger value='experience'>Experience</TabsTrigger>
+        {hasEvaluation && <TabsTrigger value='evaluation'>Evaluation</TabsTrigger>}
         <TabsTrigger value='notes'>Notes</TabsTrigger>
       </TabsList>
 
@@ -261,6 +133,90 @@ function CandidateDetails({ candidate }) {
         </div>
       </TabsContent>
 
+      {hasEvaluation && (
+        <TabsContent value='evaluation' className='space-y-4'>
+          {candidate.evaluationError ? (
+            <div className='text-center py-8'>
+              <AlertCircle className='w-8 h-8 mx-auto mb-2 text-amber-500' />
+              <p className='text-gray-600 mb-2'>Evaluation Failed</p>
+              <p className='text-sm text-gray-500'>{candidate.evaluationError}</p>
+              <p className='text-xs text-gray-400 mt-4'>
+                You can still review this candidate based on their CV content
+              </p>
+            </div>
+          ) : (
+            <div className='space-y-4'>
+              {/* Overall Score */}
+              <div className='space-y-2'>
+                <h4 className='font-medium'>Overall Score</h4>
+                <div className='flex items-center gap-3'>
+                  <Progress value={candidate.score} className='flex-1' />
+                  <Badge variant={getScoreBadge(candidate.score).variant}>{candidate.score}%</Badge>
+                </div>
+                {candidate.evaluation.summary?.recommendation && (
+                  <p className='text-sm text-gray-600'>
+                    Recommendation:{' '}
+                    <span className='font-medium capitalize'>
+                      {candidate.evaluation.summary.recommendation.replace('_', ' ')}
+                    </span>
+                  </p>
+                )}
+              </div>
+
+              {/* Category Scores */}
+              <div className='space-y-3'>
+                <h4 className='font-medium'>Category Breakdown</h4>
+                {Object.entries(candidate.evaluation.categories).map(([category, categoryData]) => (
+                  <div key={category} className='space-y-2'>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-sm font-medium capitalize'>
+                        {category.replace(/([A-Z])/g, ' $1').trim()}
+                      </span>
+                      <span className='text-sm text-gray-600'>
+                        {categoryData.score}/{categoryData.maxScore} points
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                      <Progress value={categoryData.percentage} className='flex-1' />
+                      <Badge variant='outline' className='min-w-[50px] text-center'>
+                        {categoryData.percentage}%
+                      </Badge>
+                    </div>
+                    {categoryData.reasoning && (
+                      <p className='text-xs text-gray-600 italic'>{categoryData.reasoning}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Strengths and Improvements */}
+              {candidate.evaluation.summary && (
+                <div className='grid grid-cols-2 gap-4'>
+                  {candidate.evaluation.summary.strengths && (
+                    <div className='space-y-2'>
+                      <h5 className='text-sm font-medium text-green-700'>Strongest Area</h5>
+                      <p className='text-xs text-gray-600'>
+                        {candidate.evaluation.summary.strengths.category}:{' '}
+                        {candidate.evaluation.summary.strengths.score}%
+                      </p>
+                    </div>
+                  )}
+                  {candidate.evaluation.summary.improvements && (
+                    <div className='space-y-2'>
+                      <h5 className='text-sm font-medium text-amber-700'>Needs Improvement</h5>
+                      <p className='text-xs text-gray-600'>
+                        {candidate.evaluation.summary.improvements.category}:{' '}
+                        {candidate.evaluation.summary.improvements.score}%
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </TabsContent>
+      )}
+
       <TabsContent value='notes' className='space-y-4'>
         <div className='text-center text-gray-500 py-8'>
           <StickyNote className='w-8 h-8 mx-auto mb-2 opacity-50' />
@@ -290,12 +246,34 @@ export default function ReviewPage() {
   // Mobile drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Initialize candidates
+  // Initialize candidates from sessionStorage
   useEffect(() => {
-    setTimeout(() => {
-      setCandidates(mockCandidates);
+    const loadCandidates = () => {
+      // Try to load processed candidates from sessionStorage
+      if (typeof window !== 'undefined') {
+        const storedCandidates = window.sessionStorage.getItem('processedCandidates');
+
+        if (storedCandidates) {
+          try {
+            const processedCandidates = JSON.parse(storedCandidates);
+            const adaptedCandidates = adaptCandidatesForUI(processedCandidates);
+
+            if (adaptedCandidates.length > 0) {
+              setCandidates(adaptedCandidates);
+              setLoading(false);
+              return;
+            }
+          } catch {
+            // Silent error - will show no candidates message
+          }
+        }
+      }
+
+      // No candidates available
       setLoading(false);
-    }, 1000);
+    };
+
+    loadCandidates();
   }, []);
 
   // Filter candidates
@@ -386,15 +364,6 @@ export default function ReviewPage() {
     toast({ description: `Undid action for ${lastAction.candidate.name}` });
   }, [history, toast]);
 
-  const resetFilters = () => {
-    setRoleFilter('all');
-    setSeniorityFilter('all');
-    setLocationFilter('');
-    setMinScore([0]);
-    setDeveloperOnly(false);
-    setCurrentIndex(0);
-  };
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -470,7 +439,7 @@ export default function ReviewPage() {
     );
   }
 
-  if (totalCandidates === 0) {
+  if (totalCandidates === 0 && !loading) {
     return (
       <div className='min-h-screen bg-gray-50'>
         <div className='max-w-7xl mx-auto px-4 py-6'>
@@ -478,13 +447,13 @@ export default function ReviewPage() {
           <div className='flex items-center justify-between mb-8'>
             <div className='flex items-center gap-4'>
               <h1 className='text-2xl font-bold'>TalentScreen</h1>
-              <Badge variant='secondary'>AI Pre-Screened</Badge>
+              <Badge variant='secondary'>AI Evaluation</Badge>
               <span className='text-gray-600'>0 candidates</span>
             </div>
             <Button variant='outline' asChild>
               <Link href='/upload'>
                 <Upload className='w-4 h-4 mr-2' />
-                Upload More
+                Upload CVs
               </Link>
             </Button>
           </div>
@@ -547,10 +516,14 @@ export default function ReviewPage() {
           <div className='flex items-center justify-center h-96'>
             <div className='text-center space-y-4'>
               <div className='text-4xl text-gray-300'>📋</div>
-              <h2 className='text-xl font-semibold text-gray-600'>
-                No candidates match your filters
-              </h2>
-              <Button onClick={resetFilters}>Reset Filters</Button>
+              <h2 className='text-xl font-semibold text-gray-600'>No candidates to review</h2>
+              <p className='text-gray-500'>Upload CVs to start the AI evaluation process</p>
+              <Button asChild>
+                <Link href='/upload'>
+                  <Upload className='w-4 h-4 mr-2' />
+                  Upload CVs
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -566,7 +539,9 @@ export default function ReviewPage() {
           <div className='flex items-center justify-between mb-8'>
             <div className='flex items-center gap-4'>
               <h1 className='text-2xl font-bold'>TalentScreen</h1>
-              <Badge variant='secondary'>AI Pre-Screened</Badge>
+              <Badge variant='secondary'>
+                {currentCandidate?.evaluation ? 'AI Evaluated' : 'AI Pre-Screened'}
+              </Badge>
               <span className='text-gray-600'>{totalCandidates} candidates</span>
             </div>
             <Button variant='outline' asChild>
@@ -664,15 +639,31 @@ export default function ReviewPage() {
                       </div>
                     </div>
                     <div className='text-right'>
-                      <div className='flex items-center gap-2 mb-2'>
-                        <Progress value={currentCandidate.score} className='w-20' />
-                        <Badge variant={getScoreBadge(currentCandidate.score).variant}>
-                          {currentCandidate.score}%
-                        </Badge>
-                      </div>
-                      <Badge variant={getScoreBadge(currentCandidate.score).variant}>
-                        {getScoreBadge(currentCandidate.score).label}
-                      </Badge>
+                      {(() => {
+                        if (currentCandidate.evaluation && !currentCandidate.evaluationError) {
+                          return (
+                            <>
+                              <div className='flex items-center gap-2 mb-2'>
+                                <Progress value={currentCandidate.score} className='w-20' />
+                                <Badge variant={getScoreBadge(currentCandidate.score).variant}>
+                                  {currentCandidate.score}%
+                                </Badge>
+                              </div>
+                              <Badge variant={getScoreBadge(currentCandidate.score).variant}>
+                                {getScoreBadge(currentCandidate.score).label}
+                              </Badge>
+                            </>
+                          );
+                        }
+                        if (currentCandidate.evaluationError) {
+                          return (
+                            <Badge variant='outline' className='text-amber-600'>
+                              Evaluation Failed
+                            </Badge>
+                          );
+                        }
+                        return <Badge variant='outline'>Not Evaluated</Badge>;
+                      })()}
                     </div>
                   </div>
                 </CardHeader>

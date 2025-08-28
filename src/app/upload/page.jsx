@@ -228,7 +228,7 @@ export default function UploadPage() {
 
         clearInterval(progressInterval);
 
-        // Update with success
+        // Update with success and store extracted/evaluation data
         setFiles((prev) =>
           prev.map((f) =>
             f.id === fileData.id
@@ -239,6 +239,9 @@ export default function UploadPage() {
                   blobUrl: result.url,
                   blobPathname: result.pathname,
                   uploadedAt: result.uploadedAt,
+                  extractedData: result.extractedData,
+                  evaluation: result.evaluation,
+                  evaluationError: result.evaluationError,
                 }
               : f,
           ),
@@ -260,6 +263,29 @@ export default function UploadPage() {
 
     await Promise.all(uploadPromises);
     setIsUploading(false);
+
+    // Store processed candidates using a callback to get latest state
+    setFiles((currentFiles) => {
+      const processedCandidates = currentFiles
+        .filter((f) => f.extractedData)
+        .map((f) => ({
+          id: f.id,
+          fileInfo: {
+            name: f.name,
+            uploadedAt: f.uploadedAt,
+          },
+          extractedData: f.extractedData,
+          evaluation: f.evaluation,
+          evaluationError: f.evaluationError,
+        }));
+
+      if (processedCandidates.length > 0 && typeof window !== 'undefined') {
+        window.sessionStorage.setItem('processedCandidates', JSON.stringify(processedCandidates));
+      }
+
+      return currentFiles; // Return unchanged files
+    });
+
     setUploadComplete(true);
   };
 

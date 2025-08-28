@@ -76,8 +76,6 @@ export class ResumeScorer {
 
     // If Shopify is not detected by keyword scanner, ensure it's reflected in scoring
     if (!keywordScan.detectedKeywords.shopify?.found) {
-      console.warn('[Scorer] Keyword detector found no Shopify experience in work history');
-
       // Return minimal score immediately if Shopify is missing
       return {
         score: 0,
@@ -208,7 +206,6 @@ export class ResumeScorer {
       penalties.push('No Shopify experience detected by keyword scanner - capped at 40%');
     } else if (workExperienceResult.score === 0 && hasShopifyInWork) {
       // If keyword was detected but score is 0, there might be an issue
-      console.warn('[Scorer] Shopify keyword detected but work experience score is 0');
     }
 
     // Check for language proficiency gate

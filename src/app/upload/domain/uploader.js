@@ -3,6 +3,8 @@
  */
 
 import { validateFile } from './validator.js';
+import { extractFromFile } from '@/app/extraction/domain/extractor.js';
+import { resumeEvaluator } from '@/app/evaluation/domain/evaluator.js';
 
 /**
  * Handle file upload process with extraction and evaluation
@@ -16,6 +18,11 @@ export async function handleFileUpload(file) {
     throw new Error(validation.error);
   }
 
+  // Debug logging for development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Processing file:', file.name, 'Size:', file.size);
+  }
+
   // Prepare file metadata
   const fileMetadata = {
     name: file.name,
@@ -26,33 +33,44 @@ export async function handleFileUpload(file) {
   };
 
   try {
-    // Call extraction API through HTTP
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('includeEvaluation', 'true'); // Request evaluation as well
+    // Call extraction directly
+    const extractionResult = await extractFromFile(file);
 
-    // Use absolute URL for extraction API
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const extractionUrl = `${baseUrl}/extraction/api`;
-
-    const extractionResponse = await fetch(extractionUrl, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!extractionResponse.ok) {
-      const errorData = await extractionResponse.json();
-      throw new Error(errorData.details || errorData.error || 'Extraction failed');
+    if (!extractionResult.extractedData) {
+      throw new Error('No data could be extracted from the file');
     }
 
-    const extractionResult = await extractionResponse.json();
+    // Call evaluation directly
+    let evaluation = null;
+    let evaluationError = null;
+
+    try {
+      const evaluationResult = await resumeEvaluator.evaluateResume(extractionResult.extractedData);
+
+      if (evaluationResult.success) {
+        evaluation = evaluationResult.data;
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Evaluation successful. Score:', `${evaluation.overall?.finalPercentage}%`);
+        }
+      } else {
+        evaluationError = evaluationResult.error;
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Evaluation failed:', evaluationError);
+        }
+      }
+    } catch (evalError) {
+      evaluationError = `Evaluation failed: ${evalError.message}`;
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Evaluation exception:', evalError.message);
+      }
+    }
 
     return {
       success: true,
       fileInfo: fileMetadata,
       extractedData: extractionResult.extractedData,
-      evaluation: extractionResult.evaluation,
-      evaluationError: extractionResult.evaluationError,
+      evaluation,
+      evaluationError,
     };
   } catch (extractionError) {
     // Return partial success with file info but extraction error
