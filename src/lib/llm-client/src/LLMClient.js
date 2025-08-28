@@ -1,6 +1,5 @@
 import { OpenAIProvider } from './providers/OpenAIProvider.js';
 import { DeepSeekProvider } from './providers/DeepSeekProvider.js';
-import { CostCalculator } from './utils/CostCalculator.js';
 import { ConfigValidator } from './utils/ConfigValidator.js';
 
 /**
@@ -14,14 +13,11 @@ export class LLMClient {
     this.config = {
       provider: 'openai',
       model: 'gpt-4o',
-      timeout: 30000,
-      costTracking: true,
-      logging: true,
+      apiKey: process.env.OPENAI_API_KEY,
       ...config,
     };
 
     this.provider = null;
-    this.costCalculator = new CostCalculator();
     this.initialized = false;
     this.requestCount = 0;
   }
@@ -71,8 +67,8 @@ export class LLMClient {
     await this.ensureInitialized();
 
     const requestOptions = {
-      temperature: options.temperature ?? this.config.temperature,
-      maxTokens: options.maxTokens ?? this.config.maxTokens,
+      temperature: options.temperature,
+      maxTokens: options.maxTokens,
       responseFormat: 'json_object', // Always JSON
       ...options,
     };
@@ -82,19 +78,7 @@ export class LLMClient {
 
       // Logging removed
 
-      const startTime = Date.now();
       const response = await this.provider.chat(messages, requestOptions);
-      const duration = Date.now() - startTime;
-
-      if (this.config.costTracking && response.usage) {
-        this.costCalculator.addUsage({
-          provider: this.config.provider,
-          model: this.config.model,
-          usage: response.usage,
-          timestamp: new Date(),
-          duration,
-        });
-      }
 
       // Logging removed
 
@@ -116,15 +100,14 @@ export class LLMClient {
    */
   async *stream(messages, options = {}) {
     await this.ensureInitialized();
-    await this.rateLimiter.waitForToken();
 
     if (!this.provider.supportsCapability('streaming')) {
       throw new Error(`Provider ${this.config.provider} does not support streaming`);
     }
 
     const requestOptions = {
-      temperature: options.temperature ?? this.config.temperature,
-      maxTokens: options.maxTokens ?? this.config.maxTokens,
+      temperature: options.temperature,
+      maxTokens: options.maxTokens,
       responseFormat: 'json_object', // Always JSON
       ...options,
     };
@@ -165,33 +148,6 @@ export class LLMClient {
 
     this.provider = this.createProvider(this.config.provider, this.config);
     await this.provider.initialize(this.config);
-  }
-
-  /**
-   * Get cost tracking information
-   * @returns {Object} Cost and usage statistics
-   */
-  getCostTracking() {
-    if (!this.config.costTracking) {
-      throw new Error('Cost tracking is disabled');
-    }
-
-    return {
-      ...this.costCalculator.getStats(),
-      requestCount: this.requestCount,
-      currentProvider: this.config.provider,
-      currentModel: this.config.model,
-    };
-  }
-
-  /**
-   * Reset cost tracking
-   */
-  resetCostTracking() {
-    this.costCalculator.reset();
-    this.requestCount = 0;
-
-    // Logging removed
   }
 
   /**
@@ -256,14 +212,6 @@ export class LLMClient {
    * Clean up resources
    */
   destroy() {
-    if (this.rateLimiter) {
-      this.rateLimiter.destroy();
-    }
-
-    if (this.retryHandler) {
-      this.retryHandler.destroy();
-    }
-
     this.initialized = false;
     this.provider = null;
 

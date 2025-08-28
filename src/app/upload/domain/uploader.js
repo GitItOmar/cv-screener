@@ -5,13 +5,27 @@
 import { validateFile } from './validator.js';
 import { extractFromFile } from '@/app/extraction/public';
 import { resumeEvaluator } from '@/app/evaluation/public';
+import { ResumeSummarizer } from '@/app/summarization/public';
+
+// Initialize summarizer instance (singleton pattern)
+let summarizerInstance = null;
+
+function getSummarizer() {
+  if (!summarizerInstance) {
+    summarizerInstance = new ResumeSummarizer();
+  }
+  return summarizerInstance;
+}
 
 /**
- * Handle file upload process with extraction and evaluation
+ * Handle file upload process with extraction, evaluation, and summarization
  * @param {File} file - File to upload
- * @returns {Promise<Object>} - Upload, extraction, and evaluation result
+ * @param {Object} options - Processing options
+ * @param {boolean} options.enableSummarization - Whether to generate AI feedback
+ * @returns {Promise<Object>} - Complete processing result
  */
-export async function handleFileUpload(file) {
+export async function handleFileUpload(file, options = {}) {
+  const { enableSummarization = true } = options;
   // Validate the file
   const validation = validateFile(file);
   if (!validation.isValid) {
@@ -35,20 +49,76 @@ export async function handleFileUpload(file) {
       throw new Error('No data could be extracted from the file');
     }
 
-    // Call evaluation directly
+    // Call evaluation directly with raw text for summarization
     let evaluation = null;
     let evaluationError = null;
+    let rawText = extractionResult.text; // Get the cleaned text from extraction
 
     try {
-      const evaluationResult = await resumeEvaluator.evaluateResume(extractionResult.extractedData);
+      const evaluationResult = await resumeEvaluator.evaluateResume(
+        extractionResult.extractedData,
+        rawText, // Pass raw text for potential summarization
+      );
 
       if (evaluationResult.success) {
         evaluation = evaluationResult.data;
+        // Keep raw text for downstream summarization
+        rawText = evaluationResult.rawText || rawText;
       } else {
         evaluationError = evaluationResult.error;
       }
     } catch (evalError) {
       evaluationError = `Evaluation failed: ${evalError.message}`;
+    }
+
+    // Generate AI feedback if evaluation was successful and summarization is enabled
+    let summarization = null;
+    let summarizationError = null;
+
+    console.log('🤖 Starting AI summarization process...');
+    if (enableSummarization && evaluation && !evaluationError) {
+      try {
+        const summarizer = getSummarizer();
+
+        console.log('📊 Generating AI feedback with data:', {
+          hasStructuredData: !!extractionResult.extractedData,
+          hasRawText: !!rawText,
+          hasEvaluation: !!evaluation,
+          rawTextLength: rawText?.length,
+        });
+
+        summarization = await summarizer.generateFeedback({
+          structuredData: extractionResult.extractedData,
+          rawText,
+          evaluationScores: evaluation,
+          jobRequirements: {}, // Could be enhanced to include actual job requirements
+        });
+
+        console.log('✅ AI summarization completed successfully:', {
+          hasAgentPerspectives: !!summarization?.agent_perspectives,
+          recommendation: summarization?.summary?.overall_recommendation,
+          processingTime: summarization?.metadata?.processing_time_ms,
+        });
+
+        // Store summarization data for the review interface (client-side only)
+        // This will be handled by the frontend when it receives the response
+        // Server-side storage could be added here if needed
+      } catch (summaryError) {
+        summarizationError = `Summarization failed: ${summaryError.message}`;
+        console.error('❌ Summarization failed:', {
+          error: summaryError.message,
+          stack: summaryError.stack,
+          enableSummarization,
+          hasEvaluation: !!evaluation,
+          evaluationError,
+        });
+      }
+    } else {
+      console.log('⏭️ Skipping AI summarization:', {
+        enableSummarization,
+        hasEvaluation: !!evaluation,
+        evaluationError,
+      });
     }
 
     return {
@@ -57,6 +127,9 @@ export async function handleFileUpload(file) {
       extractedData: extractionResult.extractedData,
       evaluation,
       evaluationError,
+      summarization,
+      summarizationError,
+      rawText, // Include raw text for potential future use
     };
   } catch (extractionError) {
     // Return partial success with file info but extraction error

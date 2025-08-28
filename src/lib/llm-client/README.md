@@ -58,10 +58,7 @@ const prompt = new PromptBuilder()
   .withVariables({ textContent: documentText })
   .build();
 
-const result = await client.complete(prompt, {
-  temperature: 0,
-  maxTokens: 1000,
-});
+const result = await client.complete(prompt);
 ```
 
 ### Provider Switching

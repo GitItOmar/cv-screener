@@ -13,7 +13,6 @@ export { OpenAIProvider } from './providers/OpenAIProvider.js';
 export { DeepSeekProvider } from './providers/DeepSeekProvider.js';
 
 // Utility exports
-export { CostCalculator } from './utils/CostCalculator.js';
 export { ConfigValidator } from './utils/ConfigValidator.js';
 
 // Constants

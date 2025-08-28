@@ -275,30 +275,13 @@ export class DeepSeekProvider extends BaseProvider {
   /**
    * Transform DeepSeek response to standard format
    * @param {Object} response - DeepSeek response (same format as OpenAI)
-   * @returns {Object} Standard response format
+   * @returns {string} Message content only
    */
   transformResponse(response) {
     const choice = response.choices[0];
     const message = choice.message;
 
-    return {
-      content: message.content || '',
-      finishReason: choice.finish_reason || 'stop',
-      usage: {
-        promptTokens: response.usage?.prompt_tokens || 0,
-        completionTokens: response.usage?.completion_tokens || 0,
-        totalTokens: response.usage?.total_tokens || 0,
-      },
-      model: response.model,
-      provider: this.name,
-      timestamp: new Date().toISOString(),
-      metadata: {
-        id: response.id,
-        object: response.object,
-        created: response.created,
-        systemFingerprint: response.system_fingerprint,
-      },
-    };
+    return message.content;
   }
 
   /**

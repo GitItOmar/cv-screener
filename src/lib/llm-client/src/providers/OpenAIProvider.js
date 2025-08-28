@@ -35,10 +35,9 @@ export class OpenAIProvider extends BaseProvider {
 
     this.client = new OpenAI({
       apiKey: config.apiKey,
-      timeout: config.timeout || 30000,
     });
 
-    this.config = { ...this.config, ...config };
+    this.model = config.model;
   }
 
   /**
@@ -60,16 +59,11 @@ export class OpenAIProvider extends BaseProvider {
    * @param {Object} options - Request options
    * @returns {Promise<Object>} Standard response format
    */
-  async chat(messages, options = {}) {
+  async chat(messages) {
     const params = this.transformRequest({
       model: this.config.model,
       messages,
-      temperature: this.config.temperature,
-      maxTokens: this.config.maxTokens,
-      topP: this.config.topP,
-      frequencyPenalty: this.config.frequencyPenalty,
-      presencePenalty: this.config.presencePenalty,
-      ...options, // Options override config defaults
+      temperature: 0.2,
     });
 
     try {
@@ -86,55 +80,9 @@ export class OpenAIProvider extends BaseProvider {
    * @param {Object} options - Request options
    * @returns {Promise<Object>} Standard response format
    */
-  async complete(prompt, options = {}) {
+  async complete(prompt) {
     const messages = [{ role: 'user', content: prompt }];
-    return this.chat(messages, options);
-  }
-
-  /**
-   * Stream a chat completion
-   * @param {Array<Object>} messages - Array of message objects
-   * @param {Object} options - Request options
-   * @returns {AsyncGenerator<Object>} Stream of response chunks
-   */
-  async *stream(messages, options = {}) {
-    const params = this.transformRequest({
-      model: this.config.model,
-      messages,
-      temperature: this.config.temperature,
-      maxTokens: this.config.maxTokens,
-      topP: this.config.topP,
-      frequencyPenalty: this.config.frequencyPenalty,
-      presencePenalty: this.config.presencePenalty,
-      stream: true,
-      ...options, // Options override config defaults
-    });
-
-    try {
-      const stream = await this.client.chat.completions.create(params);
-
-      for await (const chunk of stream) {
-        const choice = chunk.choices[0];
-        if (choice?.delta?.content) {
-          yield {
-            content: choice.delta.content,
-            finishReason: choice.finish_reason,
-            delta: true,
-          };
-        }
-
-        if (choice?.finish_reason) {
-          yield {
-            content: '',
-            finishReason: choice.finish_reason,
-            delta: false,
-            usage: chunk.usage,
-          };
-        }
-      }
-    } catch (error) {
-      throw this.parseError(error);
-    }
+    return this.chat(messages);
   }
 
   /**
@@ -320,26 +268,7 @@ export class OpenAIProvider extends BaseProvider {
     const choice = response.choices[0];
     const message = choice.message;
 
-    return {
-      content: message.content || '',
-      finishReason: choice.finish_reason || 'stop',
-      usage: {
-        promptTokens: response.usage?.prompt_tokens || 0,
-        completionTokens: response.usage?.completion_tokens || 0,
-        totalTokens: response.usage?.total_tokens || 0,
-      },
-      model: response.model,
-      provider: this.name,
-      timestamp: new Date().toISOString(),
-      metadata: {
-        id: response.id,
-        object: response.object,
-        created: response.created,
-        systemFingerprint: response.system_fingerprint,
-        functionCall: message.function_call,
-        toolCalls: message.tool_calls,
-      },
-    };
+    return message.content;
   }
 
   /**

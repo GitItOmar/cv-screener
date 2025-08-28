@@ -119,7 +119,14 @@ QUALITY STANDARDS:
    * @returns {string} - Formatted user prompt
    */
   static getUserPrompt(resumeText) {
-    return `Please extract structured information from this resume text and return only the JSON object with the extracted data:
+    const now = new Date();
+    const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const currentYear = now.getFullYear();
+    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+
+    return `Today's date is ${currentDate} (Year: ${currentYear}, Month: ${currentMonth}). Use this date when interpreting relative dates like "Present", "Current", or when calculating durations for ongoing positions.
+
+Please extract structured information from this resume text and return only the JSON object with the extracted data:
 
 RESUME TEXT:
 ${resumeText}
@@ -132,123 +139,6 @@ Remember to:
 5. Apply conservative level classification based on experience
 
 Return the JSON object now:`;
-  }
-
-  /**
-   * Get structured response schema for validation
-   * @returns {Object} - JSON schema for response validation
-   */
-  static getResponseSchema() {
-    return {
-      type: 'object',
-      required: [
-        'positionAppliedFor',
-        'selfEvaluation',
-        'skillsAndSpecialties',
-        'workExperience',
-        'basicInformation',
-        'educationBackground',
-      ],
-      properties: {
-        positionAppliedFor: {
-          type: 'object',
-          properties: {
-            title: { type: ['string', 'null'] },
-            level: {
-              type: 'string',
-              enum: ['junior', 'mid-level', 'senior', 'leadership'],
-            },
-            yearsRequired: { type: ['number', 'null'] },
-            keywords: { type: 'array', items: { type: 'string' } },
-          },
-        },
-        selfEvaluation: {
-          type: 'object',
-          properties: {
-            summary: { type: ['string', 'null'] },
-            careerHighlights: { type: 'array', items: { type: 'string' } },
-            strengths: { type: 'array', items: { type: 'string' } },
-            goals: { type: ['string', 'null'] },
-            personalProjects: { type: 'array', items: { type: 'string' } },
-            learningInitiatives: { type: 'array', items: { type: 'string' } },
-          },
-        },
-        skillsAndSpecialties: {
-          type: 'object',
-          properties: {
-            technical: { type: 'array', items: { type: 'string' } },
-            frameworks: { type: 'array', items: { type: 'string' } },
-            tools: { type: 'array', items: { type: 'string' } },
-            domains: { type: 'array', items: { type: 'string' } },
-            softSkills: { type: 'array', items: { type: 'string' } },
-            certifications: { type: 'array', items: { type: 'string' } },
-            languages: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  name: { type: 'string' },
-                  proficiency: {
-                    type: 'string',
-                    enum: ['native', 'fluent', 'advanced', 'intermediate', 'basic'],
-                  },
-                },
-              },
-            },
-          },
-        },
-        workExperience: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              company: { type: 'string' },
-              position: { type: 'string' },
-              startDate: { type: 'string' },
-              endDate: { type: 'string' },
-              duration: { type: 'string' },
-              responsibilities: { type: 'array', items: { type: 'string' } },
-              achievements: { type: 'array', items: { type: 'string' } },
-            },
-          },
-        },
-        basicInformation: {
-          type: 'object',
-          properties: {
-            fullName: { type: ['string', 'null'] },
-            email: { type: ['string', 'null'] },
-            phone: { type: ['string', 'null'] },
-            location: { type: ['string', 'null'] },
-            linkedIn: { type: ['string', 'null'] },
-            github: { type: ['string', 'null'] },
-            availability: { type: ['string', 'null'] },
-          },
-        },
-        educationBackground: {
-          type: 'object',
-          properties: {
-            degrees: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  type: {
-                    type: 'string',
-                    enum: ["Bachelor's", "Master's", 'PhD', 'Associate', 'Certificate'],
-                  },
-                  field: { type: 'string' },
-                  institution: { type: 'string' },
-                  graduationYear: { type: 'number' },
-                  gpa: { type: ['number', 'null'] },
-                },
-              },
-            },
-            relevantCoursework: { type: 'array', items: { type: 'string' } },
-            projects: { type: 'array', items: { type: 'string' } },
-          },
-        },
-      },
-    };
   }
 }
 

@@ -146,10 +146,7 @@ export class ResumeScorer {
       await this.client.initialize();
 
       // Make the LLM call with our unified client (always returns JSON)
-      const response = await this.client.complete(messages, {
-        temperature: 0,
-        maxTokens: 1000,
-      });
+      const response = await this.client.complete(messages);
 
       // Parse the JSON response
       const parseResult = this.responseParser.parse(response);
@@ -209,10 +206,10 @@ export class ResumeScorer {
     }
 
     // Check for language proficiency gate
-    const basicInfoResult = categoryScores.basicInformation;
+    const skillsSpecialtiesResult = categoryScores.skillsSpecialties;
     if (
-      !basicInfoResult.details?.language_evidence ||
-      basicInfoResult.details.language_evidence.toLowerCase().includes('no evidence')
+      !skillsSpecialtiesResult.details?.language_evidence ||
+      skillsSpecialtiesResult.details.language_evidence.toLowerCase().includes('no evidence')
     ) {
       finalPercentage = Math.min(finalPercentage, 50);
       penalties.push('Insufficient language proficiency evidence - capped at 50%');

@@ -242,10 +242,46 @@ export default function UploadPage() {
                   extractedData: result.extractedData,
                   evaluation: result.evaluation,
                   evaluationError: result.evaluationError,
+                  summarization: result.summarization,
+                  summarizationError: result.summarizationError,
+                  rawText: result.rawText,
                 }
               : f,
           ),
         );
+
+        // Store processed candidate data for review interface
+        if (result.extractedData && result.evaluation && typeof window !== 'undefined') {
+          const candidateData = {
+            id: `candidate_${fileData.id}`,
+            fileInfo: result.fileInfo,
+            extractedData: result.extractedData,
+            evaluation: result.evaluation,
+            evaluationError: result.evaluationError,
+            summarization: result.summarization,
+            summarizationError: result.summarizationError,
+            rawText: result.rawText,
+            timestamp: new Date().toISOString(),
+          };
+
+          try {
+            // Get existing candidates or initialize empty array
+            const existingCandidates = JSON.parse(
+              window.sessionStorage.getItem('processedCandidates') || '[]',
+            );
+
+            // Add new candidate
+            existingCandidates.push(candidateData);
+
+            // Store updated list
+            window.sessionStorage.setItem(
+              'processedCandidates',
+              JSON.stringify(existingCandidates),
+            );
+          } catch (error) {
+            console.warn('Failed to store candidate data in sessionStorage:', error);
+          }
+        }
 
         setUploadStats((prev) => ({ ...prev, succeeded: prev.succeeded + 1 }));
       } catch (error) {
@@ -269,14 +305,20 @@ export default function UploadPage() {
       const processedCandidates = currentFiles
         .filter((f) => f.extractedData)
         .map((f) => ({
-          id: f.id,
+          id: `candidate_${f.id}`,
           fileInfo: {
             name: f.name,
+            size: f.size,
+            type: f.type,
             uploadedAt: f.uploadedAt,
           },
           extractedData: f.extractedData,
           evaluation: f.evaluation,
           evaluationError: f.evaluationError,
+          summarization: f.summarization,
+          summarizationError: f.summarizationError,
+          rawText: f.rawText,
+          timestamp: new Date().toISOString(),
         }));
 
       if (processedCandidates.length > 0 && typeof window !== 'undefined') {
@@ -413,7 +455,7 @@ export default function UploadPage() {
                       Drop files here or click to browse
                     </p>
                     <p className='text-sm text-gray-600 mb-4'>
-                      Supports PDF, DOC, DOCX • Max 10MB per file • Up to 200 files
+                      Supports PDF, DOC, DOCX • Max 1MB per file • Up to 200 files
                     </p>
                     <Button onClick={() => fileInputRef.current?.click()} aria-label='Add files'>
                       Add files

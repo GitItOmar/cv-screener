@@ -12,9 +12,10 @@ class ResumeEvaluator {
   /**
    * Evaluate complete resume data and return scored results
    * @param {Object} resumeData - Extracted resume data structure
+   * @param {string} rawText - Raw resume text (optional, for passing to summarizer)
    * @returns {Promise<Object>} - Complete evaluation results
    */
-  async evaluateResume(resumeData) {
+  async evaluateResume(resumeData, rawText = null) {
     const startTime = Date.now();
 
     try {
@@ -67,6 +68,7 @@ class ResumeEvaluator {
       return {
         success: true,
         data: evaluation,
+        rawText, // Pass through raw text for summarizer
       };
     } catch (error) {
       return {

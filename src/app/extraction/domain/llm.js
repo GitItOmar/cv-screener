@@ -35,9 +35,7 @@ class LLMExtractor {
 
       const response = await this.client.complete(prompt.messages);
 
-      const parseResult = this.responseParser.parse(response, {
-        schema: ExtractionPrompts.getResponseSchema(),
-      });
+      const parseResult = this.responseParser.parse(response);
 
       if (!parseResult.success) {
         throw new Error(`Response parsing failed: ${parseResult.error}`);
@@ -90,9 +88,7 @@ Ensure these keywords appear in the appropriate sections (work experience, skill
         .build();
 
       const response = await this.client.complete(prompt.messages);
-      const parseResult = this.responseParser.parse(response, {
-        schema: ExtractionPrompts.getResponseSchema(),
-      });
+      const parseResult = this.responseParser.parse(response);
 
       if (!parseResult.success) {
         throw new Error(`Retry extraction failed: ${parseResult.error}`);

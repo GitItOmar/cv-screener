@@ -24,14 +24,13 @@ export class ConfigValidator {
     this.validateProvider(config);
     this.validateModel(config);
     this.validateApiKey(config);
-    this.validateOptionalFields(config);
 
     if (this.errors.length > 0) {
       throw new Error(`Configuration validation failed:\n${this.errors.join('\n')}`);
     }
 
     if (this.warnings.length > 0) {
-      console.warn(`Configuration warnings:\n${this.warnings.join('\n')}`);
+      // Configuration warnings exist but are not logged
     }
 
     return true;
@@ -126,133 +125,6 @@ export class ConfigValidator {
   }
 
   /**
-   * Validate optional configuration fields
-   * @param {Object} config - Configuration object
-   * @private
-   */
-  validateOptionalFields(config) {
-    this.validateTimeout(config);
-    this.validateTemperature(config);
-    this.validateMaxTokens(config);
-    this.validateBooleanFields(config);
-  }
-
-  /**
-   * Validate timeout configuration
-   * @param {Object} config - Configuration object
-   * @private
-   */
-  validateTimeout(config) {
-    if (config.timeout !== undefined) {
-      if (typeof config.timeout !== 'number') {
-        this.errors.push('Timeout must be a number');
-        return;
-      }
-
-      if (config.timeout <= 0) {
-        this.errors.push('Timeout must be greater than 0');
-        return;
-      }
-
-      if (config.timeout > 300000) {
-        // 5 minutes
-        this.warnings.push('Timeout is very high (>5 minutes), this may cause issues');
-      }
-
-      if (config.timeout < 1000) {
-        // 1 second
-        this.warnings.push('Timeout is very low (<1 second), requests may fail frequently');
-      }
-    }
-  }
-
-  /**
-   * Validate temperature configuration
-   * @param {Object} config - Configuration object
-   * @private
-   */
-  validateTemperature(config) {
-    if (config.temperature !== undefined) {
-      if (typeof config.temperature !== 'number') {
-        this.errors.push('Temperature must be a number');
-        return;
-      }
-
-      if (config.temperature < 0 || config.temperature > 2) {
-        this.errors.push('Temperature must be between 0 and 2');
-        return;
-      }
-    }
-  }
-
-  /**
-   * Validate max tokens configuration
-   * @param {Object} config - Configuration object
-   * @private
-   */
-  validateMaxTokens(config) {
-    if (config.maxTokens !== undefined) {
-      if (typeof config.maxTokens !== 'number') {
-        this.errors.push('Max tokens must be a number');
-        return;
-      }
-
-      if (!Number.isInteger(config.maxTokens)) {
-        this.errors.push('Max tokens must be an integer');
-        return;
-      }
-
-      if (config.maxTokens <= 0) {
-        this.errors.push('Max tokens must be greater than 0');
-        return;
-      }
-
-      // Model-specific token limits
-      if (config.model) {
-        this.validateTokenLimitForModel(config.maxTokens, config.model);
-      }
-    }
-  }
-
-  /**
-   * Validate token limits for specific models
-   * @param {number} maxTokens - Max tokens configuration
-   * @param {string} model - Model name
-   * @private
-   */
-  validateTokenLimitForModel(maxTokens, model) {
-    const modelLimits = {
-      'gpt-4o': 128000,
-      'gpt-4o-mini': 128000,
-      'gpt-4-turbo': 128000,
-      'gpt-3.5-turbo': 16385,
-      'gpt-3.5-turbo-16k': 16385,
-      'deepseek-chat': 32768,
-      'deepseek-coder': 32768,
-    };
-
-    const limit = modelLimits[model];
-    if (limit && maxTokens > limit) {
-      this.warnings.push(`Max tokens (${maxTokens}) exceeds model limit for '${model}' (${limit})`);
-    }
-  }
-
-  /**
-   * Validate boolean configuration fields
-   * @param {Object} config - Configuration object
-   * @private
-   */
-  validateBooleanFields(config) {
-    const booleanFields = ['costTracking', 'logging'];
-
-    for (const field of booleanFields) {
-      if (config[field] !== undefined && typeof config[field] !== 'boolean') {
-        this.errors.push(`${field} must be a boolean`);
-      }
-    }
-  }
-
-  /**
    * Validate configuration against environment
    * @param {Object} config - Configuration object
    * @param {Object} env - Environment variables
@@ -312,22 +184,12 @@ export class ConfigValidator {
       openai: {
         provider: 'openai',
         model: 'gpt-4o',
-        apiKey: process.env.OPENAI_API_KEY || 'your-openai-api-key',
-        temperature: 0.7,
-        maxTokens: 1000,
-        timeout: 30000,
-        costTracking: true,
-        logging: true,
+        apiKey: process.env.OPENAI_API_KEY,
       },
       deepseek: {
         provider: 'deepseek',
         model: 'deepseek-chat',
-        apiKey: process.env.DEEPSEEK_API_KEY || 'your-deepseek-api-key',
-        temperature: 0.7,
-        maxTokens: 1000,
-        timeout: 60000,
-        costTracking: true,
-        logging: true,
+        apiKey: process.env.DEEPSEEK_API_KEY,
       },
     };
 
