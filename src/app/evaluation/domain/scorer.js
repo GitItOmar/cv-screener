@@ -1,7 +1,7 @@
 import { jobRequirements } from './jobRequirements.js';
 import { LLMClient, ResponseParser } from '@/lib/llm-client/src/index.js';
 import EvaluationPrompts from './prompts.js';
-import { keywordDetector } from '@/app/extraction/domain/keywordDetector.js';
+import { keywordDetector } from '@/app/extraction/public';
 
 /**
  * LLM-based Resume Scoring Module

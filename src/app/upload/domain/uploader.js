@@ -3,8 +3,8 @@
  */
 
 import { validateFile } from './validator.js';
-import { extractFromFile } from '@/app/extraction/domain/extractor.js';
-import { resumeEvaluator } from '@/app/evaluation/domain/evaluator.js';
+import { extractFromFile } from '@/app/extraction/public';
+import { resumeEvaluator } from '@/app/evaluation/public';
 
 /**
  * Handle file upload process with extraction and evaluation

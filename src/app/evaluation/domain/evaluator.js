@@ -1,3 +1,5 @@
+'use server';
+
 import { ResumeScorer } from './scorer.js';
 
 /**

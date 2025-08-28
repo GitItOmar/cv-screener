@@ -3,7 +3,7 @@
  * Handles file uploads with automatic extraction
  */
 
-import { handleFileUpload } from '../domain/uploader.js';
+import { handleFileUpload } from '@/app/upload/domain/uploader.js';
 
 export async function POST(request) {
   const startTime = Date.now();

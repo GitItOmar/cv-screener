@@ -1,3 +1,5 @@
+'use server';
+
 import { LLMClient, PromptBuilder, ResponseParser } from '@/lib/llm-client/src/index.js';
 import ExtractionPrompts from './prompts.js';
 import { keywordDetector } from './keywordDetector.js';

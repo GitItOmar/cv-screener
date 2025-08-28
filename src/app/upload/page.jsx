@@ -177,7 +177,7 @@ export default function UploadPage() {
     const formData = new FormData();
     formData.append('file', fileData.file);
 
-    const response = await fetch('/upload/api', {
+    const response = await fetch('/api/upload', {
       method: 'POST',
       body: formData,
     });
