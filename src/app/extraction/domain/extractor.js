@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * Main extraction orchestrator
  * Coordinates the entire extraction process

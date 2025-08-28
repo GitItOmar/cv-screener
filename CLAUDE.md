@@ -23,15 +23,47 @@ This is a CV screening application built with Next.js 15 and React 19. The appli
 - **File Storage**: Vercel Blob storage
 - **Icons**: Lucide React
 
-### Project Structure
+### Project Structure & Architecture Decisions
 
-- `/app/` - Next.js App Router pages and API routes
-  - `/upload/` - CV upload functionality with drag-and-drop
-  - `/review/` - Candidate review interface with swipe controls
-  - `route.js` - Upload API endpoint for Vercel Blob
-- `/components/ui/` - Reusable shadcn/ui components
-- `/hooks/` - Custom React hooks (toast notifications)
-- `/lib/` - Utility functions
+#### Module Architecture
+
+Each module follows a consistent structure:
+
+```
+src/app/(module)/
+├── public/
+│   └── index.js         # Public API surface (exports only)
+├── domain/               # Business logic layer
+│   └── *.js
+├── data-access/          # Data layer (optional, not all modules have this)
+│   └── *.js
+└── page.jsx             # Module entry point (optional, for modules with UI)
+```
+
+#### Key Architecture Rules
+
+1. **API Routes**: Centralized in `src/app/api/` following pattern `api/(module)/(endpoint)/route.js`
+   - No API folders within individual modules
+   - All routes moved to centralized API folder
+
+2. **Module Boundaries**:
+   - Each module surfaces a public API through `public/index.js`
+   - Other modules import ONLY from the public API: `@/app/(module)/public`
+   - Direct imports from domain or data-access layers are forbidden
+   - Domain layer contains business logic, services, and core functionality
+   - Data-access layer handles data operations when present
+
+3. **Shared Functionality**:
+   - Located in `src/lib/` as packages
+   - Examples: `llm-client`, `file-parser`
+   - Used across multiple modules for common functionality
+
+#### Current Module Structure
+
+- **extraction**: Has public API, domain layer
+- **evaluation**: Has public API, domain layer
+- **upload**: Has domain layer, page.jsx (no public folder needed per requirements)
+- **review**: Has page.jsx, utils (no public folder needed per requirements)
 
 ### Key Features
 
@@ -46,24 +78,3 @@ This is a CV screening application built with Next.js 15 and React 19. The appli
 - Components are in JSX format (not TypeScript)
 - Tailwind CSS for styling with CSS variables
 - Responsive design with mobile drawer for candidate details
-
-### State Management Patterns
-
-- Local component state with useState
-- Toast notifications via custom hook
-- File upload progress tracking
-- History tracking for undo functionality
-
-### File Upload Flow
-
-1. Client-side validation (file type, size, duplicates)
-2. FormData submission to `/api/upload` endpoint
-3. Integration with Vercel Blob storage
-4. Progress tracking and error handling
-
-### Important Notes
-
-- The app uses mock data for candidate reviews
-- Upload route exists but needs proper API implementation
-- No authentication system currently implemented
-- Uses client-side routing with Next.js App Router
