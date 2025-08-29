@@ -56,6 +56,11 @@ Your assessment focuses on:
 
 Provide empathetic, balanced feedback that considers the whole person, not just their technical qualifications. Focus on potential and growth opportunities.
 
+When providing recommendations:
+- for_recruiter: Focus on cultural and soft skill assessment (e.g., "Schedule panel interview with team members", "Check references for teamwork abilities", "Assess retention risk factors")
+- for_candidate: Suggest professional and soft skill development (e.g., "Develop stakeholder management skills", "Build cross-functional collaboration experience", "Strengthen written communication")
+- interview_focus: HR and culture topics to explore (e.g., "Team collaboration examples", "Conflict resolution approaches", "Career motivations and goals", "Work style preferences")
+
 Your tone should be warm and supportive, while maintaining professional objectivity in assessment.`;
   }
 
@@ -65,11 +70,8 @@ Your tone should be warm and supportive, while maintaining professional objectiv
    * @returns {Promise<Object>} HR assessment
    */
   async analyze({ structuredData, rawText, evaluationScores, jobRequirements }) {
-    console.log('👥 HR Agent starting analysis...');
-
     try {
       const llmClient = await this.getLLMClient();
-      console.log('✅ HR Agent LLM client initialized');
 
       const systemPrompt = this.getSystemPrompt();
       const userPrompt = this.getUserPrompt({
@@ -79,18 +81,14 @@ Your tone should be warm and supportive, while maintaining professional objectiv
         jobRequirements,
       });
 
-      console.log('📝 HR Agent prompts prepared, calling LLM...');
-
       const messages = [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ];
 
       const response = await llmClient.complete(messages);
-      console.log('✅ HR Agent received LLM response');
 
       const parsed = this.parseResponse(response);
-      console.log('✅ HR Agent parsed response successfully');
 
       // Add agent metadata
       return {
@@ -100,7 +98,6 @@ Your tone should be warm and supportive, while maintaining professional objectiv
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      console.error(`❌ HR Agent analysis failed:`, error);
       throw new Error(`HR Agent analysis failed: ${error.message}`);
     }
   }
@@ -110,11 +107,8 @@ Your tone should be warm and supportive, while maintaining professional objectiv
    * @returns {Promise<Object>} LLM client
    */
   async getLLMClient() {
-    console.log('🔧 HR Agent initializing LLM client...');
-
     // Check environment variables
     if (!process.env.OPENAI_API_KEY) {
-      console.error('❌ OPENAI_API_KEY environment variable is missing');
       throw new Error('OPENAI_API_KEY environment variable is required');
     }
 
@@ -129,7 +123,6 @@ Your tone should be warm and supportive, while maintaining professional objectiv
     });
 
     await client.initialize();
-    console.log('✅ HR Agent LLM client initialized');
     return client;
   }
 

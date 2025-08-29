@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,110 +30,111 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-const ACCEPTED_TYPES = ['.pdf', '.docx'];
-const MAX_FILE_SIZE = 1024 * 1024; // 1MB
-const MAX_FILES = 200;
+// File constraints
+const FILE_CONSTRAINTS = {
+  acceptedTypes: ['.pdf', '.docx'],
+  maxSize: 1024 * 1024, // 1MB
+  maxCount: 200,
+};
 
 export default function UploadPage() {
+  // Core state
   const [files, setFiles] = useState([]);
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [gdprConsent, setGdprConsent] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadComplete, setUploadComplete] = useState(false);
-  const [uploadStats, setUploadStats] = useState({
-    succeeded: 0,
-    failed: 0,
-    total: 0,
-    startTime: null,
+  const [processingState, setProcessingState] = useState({
+    isProcessing: false,
+    isComplete: false,
   });
+  const [gdprConsent, setGdprConsent] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  // Refs and hooks
   const fileInputRef = useRef(null);
   const { toast } = useToast();
 
+  // Helper functions
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
   };
 
-  const validateFile = (file) => {
+  const isValidFile = (file) => {
     const extension = `.${file.name.split('.').pop().toLowerCase()}`;
-    if (!ACCEPTED_TYPES.includes(extension)) {
-      return { valid: false, error: 'Unsupported file type' };
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      return { valid: false, error: 'File too large (max 1MB)' };
-    }
+    const isValidType = FILE_CONSTRAINTS.acceptedTypes.includes(extension);
+    const isValidSize = file.size <= FILE_CONSTRAINTS.maxSize;
+
+    if (!isValidType) return { valid: false, reason: 'Unsupported file type' };
+    if (!isValidSize) return { valid: false, reason: 'File too large (max 1MB)' };
     return { valid: true };
   };
 
-  const getBadgeVariant = (status) => {
-    switch (status) {
-      case 'done':
-        return 'default';
-      case 'failed':
-        return 'destructive';
-      case 'uploading':
-        return 'secondary';
-      default:
-        return 'outline';
+  const getStatusBadgeVariant = (status) => {
+    const variants = {
+      done: 'default',
+      failed: 'destructive',
+      processing: 'secondary',
+      pending: 'outline',
+    };
+    return variants[status] || 'outline';
+  };
+
+  const handleFilesAdded = (newFiles) => {
+    const filesToAdd = [];
+    const rejectedFiles = [];
+
+    Array.from(newFiles).forEach((file) => {
+      // Check file count limit
+      if (files.length + filesToAdd.length >= FILE_CONSTRAINTS.maxCount) {
+        rejectedFiles.push({ name: file.name, reason: 'File limit exceeded' });
+        return;
+      }
+
+      // Validate file
+      const validation = isValidFile(file);
+      if (!validation.valid) {
+        rejectedFiles.push({ name: file.name, reason: validation.reason });
+        return;
+      }
+
+      // Check for duplicates
+      const isDuplicate = files.some((f) => f.name === file.name && f.size === file.size);
+      if (isDuplicate) {
+        rejectedFiles.push({ name: file.name, reason: 'Duplicate file' });
+        return;
+      }
+
+      filesToAdd.push({
+        id: `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+        file,
+        name: file.name,
+        size: file.size,
+        status: 'pending',
+      });
+    });
+
+    // Add valid files
+    if (filesToAdd.length > 0) {
+      setFiles((prev) => [...prev, ...filesToAdd]);
+    }
+
+    // Show errors for rejected files
+    if (rejectedFiles.length > 0) {
+      const message = rejectedFiles
+        .slice(0, 3)
+        .map((f) => `${f.name}: ${f.reason}`)
+        .join(', ');
+
+      toast({
+        title: 'Some files were rejected',
+        description: message + (rejectedFiles.length > 3 ? '...' : ''),
+        variant: 'destructive',
+      });
     }
   };
 
-  const addFiles = useCallback(
-    (newFiles) => {
-      const validFiles = [];
-      const errors = [];
-
-      Array.from(newFiles).forEach((file) => {
-        if (files.length + validFiles.length >= MAX_FILES) {
-          errors.push(`Maximum ${MAX_FILES} files allowed`);
-          return;
-        }
-
-        const validation = validateFile(file);
-        if (!validation.valid) {
-          errors.push(`${file.name}: ${validation.error}`);
-          return;
-        }
-
-        // Check for duplicates (simple name + size check)
-        const isDuplicate = [...files, ...validFiles].some(
-          (existingFile) => existingFile.name === file.name && existingFile.size === file.size,
-        );
-
-        if (isDuplicate) {
-          errors.push(`${file.name}: Duplicate file`);
-          return;
-        }
-
-        validFiles.push({
-          id: Date.now() + Math.random(),
-          file,
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          status: 'queued',
-          progress: 0,
-        });
-      });
-
-      if (validFiles.length > 0) {
-        setFiles((prev) => [...prev, ...validFiles]);
-      }
-
-      if (errors.length > 0) {
-        toast({
-          title: "Some files couldn't be added",
-          description: errors.slice(0, 3).join(', ') + (errors.length > 3 ? '...' : ''),
-          variant: 'destructive',
-        });
-      }
-    },
-    [files, toast],
-  );
-
+  // Drag and drop handlers
   const handleDragEnter = (e) => {
     e.preventDefault();
     setIsDragOver(true);
@@ -153,27 +154,26 @@ export default function UploadPage() {
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragOver(false);
-    const droppedFiles = e.dataTransfer.files;
-    addFiles(droppedFiles);
+    handleFilesAdded(e.dataTransfer.files);
   };
 
-  const handleFileSelect = (e) => {
-    const selectedFiles = e.target.files;
-    addFiles(selectedFiles);
-    e.target.value = ''; // Reset input
+  const handleFileInputChange = (e) => {
+    handleFilesAdded(e.target.files);
+    e.target.value = ''; // Reset input for re-selection
   };
 
   const removeFile = (fileId) => {
-    const fileToRemove = files.find((f) => f.id === fileId);
-    setFiles((prev) => prev.filter((f) => f.id !== fileId));
-
-    toast({
-      title: 'File removed',
-      description: `${fileToRemove.name} was removed`,
-    });
+    const file = files.find((f) => f.id === fileId);
+    if (file) {
+      setFiles((prev) => prev.filter((f) => f.id !== fileId));
+      toast({
+        title: 'File removed',
+        description: file.name,
+      });
+    }
   };
 
-  const uploadFileToVercel = async (fileData) => {
+  const processFile = async (fileData) => {
     const formData = new FormData();
     formData.append('file', fileData.file);
 
@@ -183,168 +183,101 @@ export default function UploadPage() {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Upload failed');
+      const error = await response.json().catch(() => ({ error: 'Processing failed' }));
+      throw new Error(error.error || 'Processing failed');
     }
 
-    const result = await response.json();
-    return result;
+    return response.json();
   };
 
-  const uploadAll = async () => {
+  const processAllFiles = async () => {
     if (!gdprConsent || files.length === 0) return;
 
-    setIsUploading(true);
-    setUploadStats({
-      succeeded: 0,
-      failed: 0,
-      total: files.length,
-      startTime: Date.now(),
-    });
+    setProcessingState({ isProcessing: true, isComplete: false });
 
-    const uploadPromises = files.map(async (fileData) => {
-      try {
-        // Update status to uploading
+    // Process each file
+    const results = await Promise.allSettled(
+      files.map(async (fileData) => {
+        // Update status to processing
         setFiles((prev) =>
-          prev.map((f) => (f.id === fileData.id ? { ...f, status: 'uploading', progress: 0 } : f)),
+          prev.map((f) => (f.id === fileData.id ? { ...f, status: 'processing' } : f)),
         );
 
-        // Simulate progress updates
-        const progressInterval = setInterval(() => {
+        try {
+          // Process file through API
+          const result = await processFile(fileData);
+
+          // Update file with result
+          setFiles((prev) =>
+            prev.map((f) => (f.id === fileData.id ? { ...f, status: 'done', data: result } : f)),
+          );
+
+          // Prepare candidate data for session storage
+          if (result.extractedData && result.evaluation) {
+            return {
+              id: `candidate_${fileData.id}`,
+              fileInfo: {
+                name: fileData.name,
+                size: fileData.size,
+                uploadedAt: result.uploadedAt,
+              },
+              extractedData: result.extractedData,
+              evaluation: result.evaluation,
+              evaluationError: result.evaluationError,
+              summarization: result.summarization,
+              summarizationError: result.summarizationError,
+              rawText: result.rawText,
+              timestamp: new Date().toISOString(),
+            };
+          }
+          return null;
+        } catch (error) {
+          // Update file with error
           setFiles((prev) =>
             prev.map((f) =>
-              f.id === fileData.id
-                ? {
-                    ...f,
-                    progress: Math.min(f.progress + Math.random() * 20, 90),
-                  }
-                : f,
+              f.id === fileData.id ? { ...f, status: 'failed', error: error.message } : f,
             ),
           );
-        }, 200);
-
-        // Upload to Vercel Blob
-        const result = await uploadFileToVercel(fileData);
-
-        clearInterval(progressInterval);
-
-        // Update with success and store extracted/evaluation data
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileData.id
-              ? {
-                  ...f,
-                  status: 'done',
-                  progress: 100,
-                  blobUrl: result.url,
-                  blobPathname: result.pathname,
-                  uploadedAt: result.uploadedAt,
-                  extractedData: result.extractedData,
-                  evaluation: result.evaluation,
-                  evaluationError: result.evaluationError,
-                  summarization: result.summarization,
-                  summarizationError: result.summarizationError,
-                  rawText: result.rawText,
-                }
-              : f,
-          ),
-        );
-
-        // Store processed candidate data for review interface
-        if (result.extractedData && result.evaluation && typeof window !== 'undefined') {
-          const candidateData = {
-            id: `candidate_${fileData.id}`,
-            fileInfo: result.fileInfo,
-            extractedData: result.extractedData,
-            evaluation: result.evaluation,
-            evaluationError: result.evaluationError,
-            summarization: result.summarization,
-            summarizationError: result.summarizationError,
-            rawText: result.rawText,
-            timestamp: new Date().toISOString(),
-          };
-
-          try {
-            // Get existing candidates or initialize empty array
-            const existingCandidates = JSON.parse(
-              window.sessionStorage.getItem('processedCandidates') || '[]',
-            );
-
-            // Add new candidate
-            existingCandidates.push(candidateData);
-
-            // Store updated list
-            window.sessionStorage.setItem(
-              'processedCandidates',
-              JSON.stringify(existingCandidates),
-            );
-          } catch (error) {
-            console.warn('Failed to store candidate data in sessionStorage:', error);
-          }
+          return null;
         }
+      }),
+    );
 
-        setUploadStats((prev) => ({ ...prev, succeeded: prev.succeeded + 1 }));
+    // Store successful candidates in session storage
+    const successfulCandidates = results
+      .filter((r) => r.status === 'fulfilled' && r.value)
+      .map((r) => r.value);
+
+    if (successfulCandidates.length > 0 && typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.setItem('processedCandidates', JSON.stringify(successfulCandidates));
       } catch (error) {
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileData.id
-              ? { ...f, status: 'failed', progress: 0, error: error.message }
-              : f,
-          ),
-        );
-
-        setUploadStats((prev) => ({ ...prev, failed: prev.failed + 1 }));
+        console.warn('Failed to store candidates:', error);
       }
-    });
+    }
 
-    await Promise.all(uploadPromises);
-    setIsUploading(false);
-
-    // Store processed candidates using a callback to get latest state
-    setFiles((currentFiles) => {
-      const processedCandidates = currentFiles
-        .filter((f) => f.extractedData)
-        .map((f) => ({
-          id: `candidate_${f.id}`,
-          fileInfo: {
-            name: f.name,
-            size: f.size,
-            type: f.type,
-            uploadedAt: f.uploadedAt,
-          },
-          extractedData: f.extractedData,
-          evaluation: f.evaluation,
-          evaluationError: f.evaluationError,
-          summarization: f.summarization,
-          summarizationError: f.summarizationError,
-          rawText: f.rawText,
-          timestamp: new Date().toISOString(),
-        }));
-
-      if (processedCandidates.length > 0 && typeof window !== 'undefined') {
-        window.sessionStorage.setItem('processedCandidates', JSON.stringify(processedCandidates));
-      }
-
-      return currentFiles; // Return unchanged files
-    });
-
-    setUploadComplete(true);
+    setProcessingState({ isProcessing: false, isComplete: true });
   };
 
-  const clearAll = () => {
+  const resetUploader = () => {
     setFiles([]);
-    setUploadComplete(false);
-    setUploadStats({ succeeded: 0, failed: 0, total: 0, startTime: null });
+    setProcessingState({ isProcessing: false, isComplete: false });
+    setGdprConsent(false);
   };
 
-  const queuedCount = files.filter((f) => f.status === 'queued').length;
-  const uploadingCount = files.filter((f) => f.status === 'uploading').length;
-  const succeededCount = files.filter((f) => f.status === 'done').length;
-  const failedCount = files.filter((f) => f.status === 'failed').length;
-  const overallProgress =
-    files.length > 0 ? ((succeededCount + failedCount) / files.length) * 100 : 0;
+  // Computed values
+  const fileStats = {
+    pending: files.filter((f) => f.status === 'pending').length,
+    processing: files.filter((f) => f.status === 'processing').length,
+    done: files.filter((f) => f.status === 'done').length,
+    failed: files.filter((f) => f.status === 'failed').length,
+    total: files.length,
+  };
 
-  const canUpload = gdprConsent && files.length > 0 && !isUploading;
+  const progress =
+    fileStats.total > 0 ? ((fileStats.done + fileStats.failed) / fileStats.total) * 100 : 0;
+
+  const canProcess = gdprConsent && files.length > 0 && !processingState.isProcessing;
 
   return (
     <div className='min-h-screen bg-gray-50'>
@@ -429,7 +362,7 @@ export default function UploadPage() {
 
           {/* Right Panel - Uploader */}
           <div className='lg:col-span-2'>
-            {!uploadComplete ? (
+            {!processingState.isComplete ? (
               <Card>
                 <CardHeader>
                   <CardTitle>Bulk upload CVs</CardTitle>
@@ -464,8 +397,8 @@ export default function UploadPage() {
                       ref={fileInputRef}
                       type='file'
                       multiple
-                      accept={ACCEPTED_TYPES.join(',')}
-                      onChange={handleFileSelect}
+                      accept={FILE_CONSTRAINTS.acceptedTypes.join(',')}
+                      onChange={handleFileInputChange}
                       className='hidden'
                     />
                   </div>
@@ -475,7 +408,7 @@ export default function UploadPage() {
                     <div className='space-y-4'>
                       <div className='flex items-center justify-between'>
                         <h3 className='font-medium text-gray-900'>Files ({files.length})</h3>
-                        <Button variant='outline' size='sm' onClick={clearAll}>
+                        <Button variant='outline' size='sm' onClick={resetUploader}>
                           Clear all
                         </Button>
                       </div>
@@ -501,14 +434,14 @@ export default function UploadPage() {
                                 </div>
 
                                 <div className='flex items-center space-x-3'>
-                                  <Badge variant={getBadgeVariant(fileData.status)}>
+                                  <Badge variant={getStatusBadgeVariant(fileData.status)}>
                                     {fileData.status === 'done' && (
                                       <CheckCircle className='w-3 h-3 mr-1' />
                                     )}
                                     {fileData.status === 'failed' && (
                                       <AlertCircle className='w-3 h-3 mr-1' />
                                     )}
-                                    {fileData.status === 'uploading' && (
+                                    {fileData.status === 'processing' && (
                                       <Clock className='w-3 h-3 mr-1' />
                                     )}
                                     {fileData.status.charAt(0).toUpperCase() +
@@ -519,16 +452,16 @@ export default function UploadPage() {
                                     variant='ghost'
                                     size='sm'
                                     onClick={() => removeFile(fileData.id)}
-                                    disabled={isUploading}
+                                    disabled={processingState.isProcessing}
                                   >
                                     <X className='w-4 h-4' />
                                   </Button>
                                 </div>
                               </div>
 
-                              {fileData.status === 'uploading' && (
+                              {fileData.status === 'processing' && (
                                 <div className='mt-2'>
-                                  <Progress value={fileData.progress} className='h-1' />
+                                  <Progress value={50} className='h-1' />
                                 </div>
                               )}
                             </div>
@@ -541,19 +474,19 @@ export default function UploadPage() {
                   {/* Controls */}
                   <div className='sticky bottom-0 bg-white border-t pt-4 -mx-6 px-6 -mb-6 pb-6'>
                     <div className='space-y-4'>
-                      {/* Overall Progress */}
-                      {isUploading && (
+                      {/* Progress indicator */}
+                      {processingState.isProcessing && (
                         <div className='space-y-2'>
                           <div className='flex justify-between text-sm'>
-                            <span>Overall Progress</span>
-                            <span>{Math.round(overallProgress)}%</span>
+                            <span>Processing Files</span>
+                            <span>{Math.round(progress)}%</span>
                           </div>
-                          <Progress value={overallProgress} />
+                          <Progress value={progress} />
                           <div className='flex justify-between text-xs text-gray-600'>
-                            <span>Queued: {queuedCount}</span>
-                            <span>Uploading: {uploadingCount}</span>
-                            <span>Succeeded: {succeededCount}</span>
-                            <span>Failed: {failedCount}</span>
+                            <span>Pending: {fileStats.pending}</span>
+                            <span>Processing: {fileStats.processing}</span>
+                            <span>Done: {fileStats.done}</span>
+                            <span>Failed: {fileStats.failed}</span>
                           </div>
                         </div>
                       )}
@@ -572,10 +505,10 @@ export default function UploadPage() {
 
                       {/* Action Buttons */}
                       <div className='flex space-x-3'>
-                        <Button onClick={uploadAll} disabled={!canUpload} className='flex-1'>
-                          Upload All ({files.length})
+                        <Button onClick={processAllFiles} disabled={!canProcess} className='flex-1'>
+                          Process All ({files.length})
                         </Button>
-                        <Button variant='outline' onClick={clearAll}>
+                        <Button variant='outline' onClick={resetUploader}>
                           Clear
                         </Button>
                       </div>
@@ -595,28 +528,22 @@ export default function UploadPage() {
                 <CardContent className='space-y-6'>
                   <div className='grid grid-cols-2 gap-4'>
                     <div className='text-center p-4 bg-green-50 rounded-lg'>
-                      <div className='text-2xl font-bold text-green-600'>{succeededCount}</div>
+                      <div className='text-2xl font-bold text-green-600'>{fileStats.done}</div>
                       <div className='text-sm text-green-700'>Successful</div>
                     </div>
                     <div className='text-center p-4 bg-red-50 rounded-lg'>
-                      <div className='text-2xl font-bold text-red-600'>{failedCount}</div>
+                      <div className='text-2xl font-bold text-red-600'>{fileStats.failed}</div>
                       <div className='text-sm text-red-700'>Failed</div>
                     </div>
                   </div>
 
-                  <div className='text-center text-sm text-gray-600'>
-                    Processing completed in{' '}
-                    {uploadStats.startTime
-                      ? Math.round((Date.now() - uploadStats.startTime) / 1000)
-                      : 0}{' '}
-                    seconds
-                  </div>
+                  <div className='text-center text-sm text-gray-600'>Processing complete</div>
 
                   <div className='flex space-x-3'>
                     <Button asChild className='flex-1'>
                       <Link href='/review'>Start Reviewing</Link>
                     </Button>
-                    <Button variant='outline' onClick={clearAll}>
+                    <Button variant='outline' onClick={resetUploader}>
                       Upload more
                     </Button>
                   </div>
@@ -628,9 +555,10 @@ export default function UploadPage() {
       </div>
       {/* Screen reader announcements */}
       <div aria-live='polite' className='sr-only'>
-        {isUploading &&
-          `Uploading ${uploadingCount} files. ${succeededCount} completed, ${failedCount} failed.`}
-        {uploadComplete && `Upload complete. ${succeededCount} files processed successfully.`}
+        {processingState.isProcessing &&
+          `Processing ${fileStats.processing} files. ${fileStats.done} completed, ${fileStats.failed} failed.`}
+        {processingState.isComplete &&
+          `Processing complete. ${fileStats.done} files processed successfully.`}
       </div>
     </div>
   );

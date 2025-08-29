@@ -51,6 +51,11 @@ Your assessment focuses on:
 
 Provide specific, technical feedback that demonstrates your understanding of their technical journey and potential. Reference actual technologies and projects from their resume.
 
+When providing recommendations:
+- for_recruiter: Focus on technical assessment needs (e.g., "Conduct architecture design interview", "Test hands-on coding skills", "Verify depth in claimed technologies")
+- for_candidate: Suggest technical skill development (e.g., "Deepen cloud architecture expertise", "Learn emerging AI/ML technologies", "Contribute to open source projects")
+- interview_focus: Technical topics to probe (e.g., "System design at scale", "Technical debt management", "Performance optimization strategies", "Security best practices")
+
 Your tone should be that of a senior technologist evaluating a peer, respectful of their experience while identifying areas for growth.`;
   }
 
@@ -60,11 +65,8 @@ Your tone should be that of a senior technologist evaluating a peer, respectful 
    * @returns {Promise<Object>} CTO assessment
    */
   async analyze({ structuredData, rawText, evaluationScores, jobRequirements }) {
-    console.log('⚙️ CTO Agent starting analysis...');
-
     try {
       const llmClient = await this.getLLMClient();
-      console.log('✅ CTO Agent LLM client initialized');
 
       const systemPrompt = this.getSystemPrompt();
       const userPrompt = this.getUserPrompt({
@@ -74,18 +76,14 @@ Your tone should be that of a senior technologist evaluating a peer, respectful 
         jobRequirements,
       });
 
-      console.log('📝 CTO Agent prompts prepared, calling LLM...');
-
       const messages = [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ];
 
       const response = await llmClient.complete(messages);
-      console.log('✅ CTO Agent received LLM response');
 
       const parsed = this.parseResponse(response);
-      console.log('✅ CTO Agent parsed response successfully');
 
       // Add agent metadata
       return {
@@ -95,7 +93,6 @@ Your tone should be that of a senior technologist evaluating a peer, respectful 
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      console.error(`❌ CTO Agent analysis failed:`, error);
       throw new Error(`CTO Agent analysis failed: ${error.message}`);
     }
   }
@@ -105,11 +102,8 @@ Your tone should be that of a senior technologist evaluating a peer, respectful 
    * @returns {Promise<Object>} LLM client
    */
   async getLLMClient() {
-    console.log('🔧 CTO Agent initializing LLM client...');
-
     // Check environment variables
     if (!process.env.OPENAI_API_KEY) {
-      console.error('❌ OPENAI_API_KEY environment variable is missing');
       throw new Error('OPENAI_API_KEY environment variable is required');
     }
 
@@ -124,7 +118,6 @@ Your tone should be that of a senior technologist evaluating a peer, respectful 
     });
 
     await client.initialize();
-    console.log('✅ CTO Agent LLM client initialized');
     return client;
   }
 

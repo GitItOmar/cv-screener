@@ -4,7 +4,7 @@
 
 import { validateFile } from './validator.js';
 import { extractFromFile } from '@/app/extraction/public';
-import { resumeEvaluator } from '@/app/evaluation/public';
+import { resumeEvaluator, jobRequirements } from '@/app/evaluation/public';
 import { ResumeSummarizer } from '@/app/summarization/public';
 
 // Initialize summarizer instance (singleton pattern)
@@ -75,29 +75,15 @@ export async function handleFileUpload(file, options = {}) {
     let summarization = null;
     let summarizationError = null;
 
-    console.log('🤖 Starting AI summarization process...');
     if (enableSummarization && evaluation && !evaluationError) {
       try {
         const summarizer = getSummarizer();
-
-        console.log('📊 Generating AI feedback with data:', {
-          hasStructuredData: !!extractionResult.extractedData,
-          hasRawText: !!rawText,
-          hasEvaluation: !!evaluation,
-          rawTextLength: rawText?.length,
-        });
 
         summarization = await summarizer.generateFeedback({
           structuredData: extractionResult.extractedData,
           rawText,
           evaluationScores: evaluation,
-          jobRequirements: {}, // Could be enhanced to include actual job requirements
-        });
-
-        console.log('✅ AI summarization completed successfully:', {
-          hasAgentPerspectives: !!summarization?.agent_perspectives,
-          recommendation: summarization?.summary?.overall_recommendation,
-          processingTime: summarization?.metadata?.processing_time_ms,
+          jobRequirements,
         });
 
         // Store summarization data for the review interface (client-side only)
@@ -105,20 +91,7 @@ export async function handleFileUpload(file, options = {}) {
         // Server-side storage could be added here if needed
       } catch (summaryError) {
         summarizationError = `Summarization failed: ${summaryError.message}`;
-        console.error('❌ Summarization failed:', {
-          error: summaryError.message,
-          stack: summaryError.stack,
-          enableSummarization,
-          hasEvaluation: !!evaluation,
-          evaluationError,
-        });
       }
-    } else {
-      console.log('⏭️ Skipping AI summarization:', {
-        enableSummarization,
-        hasEvaluation: !!evaluation,
-        evaluationError,
-      });
     }
 
     return {

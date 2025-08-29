@@ -102,7 +102,10 @@ ${displaySummarization.agent_perspectives?.hr?.concerns?.map((concern) => `    �
 RECOMMENDATIONS:
   For Recruiter:
 ${displaySummarization.recommendations?.for_recruiter?.map((rec) => `    • ${rec}`).join('\n') || '    None'}
-  
+
+  For Candidate:
+${displaySummarization.recommendations?.for_candidate?.map((rec) => `    • ${rec}`).join('\n') || '    None'}
+
   Interview Focus Areas:
 ${displaySummarization.recommendations?.interview_focus?.map((focus) => `    • ${focus}`).join('\n') || '    None'}
 

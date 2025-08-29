@@ -60,8 +60,17 @@ Provide your assessment in the following JSON format:
   "score": 0.0-1.0,
   "highlights": ["Key strength 1", "Key strength 2", "..."],
   "concerns": ["Concern 1", "Concern 2", "..."],
-  "recommendations": ["Recommendation 1", "Recommendation 2", "..."]
-}`;
+  "recommendations": {
+    "for_recruiter": ["Action item for recruiter", "Another action for recruiter", "..."],
+    "for_candidate": ["Improvement area for candidate", "Skill to develop", "..."],
+    "interview_focus": ["Topic to explore in interview", "Question area to probe", "..."]
+  }
+}
+
+IMPORTANT: Structure your recommendations into three categories:
+- for_recruiter: Actionable items for the recruiting team (e.g., "Fast-track to final round", "Verify technical skills with coding test")
+- for_candidate: Development areas and feedback for the candidate (e.g., "Gain more leadership experience", "Strengthen cloud architecture knowledge")
+- interview_focus: Specific topics to explore during interviews (e.g., "Discuss approach to scaling distributed systems", "Explore conflict resolution examples")`;
   }
 
   /**
@@ -82,11 +91,24 @@ Provide your assessment in the following JSON format:
       return false;
     }
 
-    if (
-      !Array.isArray(response.highlights) ||
-      !Array.isArray(response.concerns) ||
-      !Array.isArray(response.recommendations)
-    ) {
+    if (!Array.isArray(response.highlights) || !Array.isArray(response.concerns)) {
+      return false;
+    }
+
+    // Handle both old format (array) and new format (object with categories)
+    if (typeof response.recommendations === 'object' && !Array.isArray(response.recommendations)) {
+      // New format validation
+      const recommendationCategories = ['for_recruiter', 'for_candidate', 'interview_focus'];
+      for (const category of recommendationCategories) {
+        if (
+          !(category in response.recommendations) ||
+          !Array.isArray(response.recommendations[category])
+        ) {
+          return false;
+        }
+      }
+    } else if (!Array.isArray(response.recommendations)) {
+      // Old format must be an array
       return false;
     }
 
@@ -99,52 +121,29 @@ Provide your assessment in the following JSON format:
    * @returns {Object} Parsed assessment
    */
   parseResponse(llmResponse) {
-    console.log('🔍 Parsing LLM response:', {
-      type: typeof llmResponse,
-      isString: typeof llmResponse === 'string',
-      length: llmResponse?.length,
-      preview:
-        typeof llmResponse === 'string'
-          ? llmResponse.substring(0, 200)
-          : JSON.stringify(llmResponse).substring(0, 200),
-    });
-
     // Handle case where response is already an object
     if (typeof llmResponse === 'object' && llmResponse !== null) {
       // Check if it's a direct valid response
       if (this.validateResponse(llmResponse)) {
-        console.log('✅ Response is already a valid object');
         return llmResponse;
       }
 
       // Check if it has a 'content' property (common LLM response format)
       if (llmResponse.content && typeof llmResponse.content === 'string') {
-        console.log(
-          '🔍 Found content property in response object, content preview:',
-          llmResponse.content.substring(0, 200),
-        );
-
-        // Try multiple parsing approaches for the content
         const contentStr = llmResponse.content.trim();
 
         // Approach 1: Direct JSON parse of content
         try {
-          console.log('🔄 Attempting direct JSON parse of content');
           const parsed = JSON.parse(contentStr);
           if (this.validateResponse(parsed)) {
-            console.log('✅ Successfully parsed content property as direct JSON');
             return parsed;
-          } else {
-            console.log('❌ Content parsed but failed validation');
           }
-        } catch (directParseError) {
-          console.log('❌ Direct JSON parse of content failed:', directParseError.message);
+        } catch {
+          // ignore
         }
 
         // Approach 2: Extract JSON from content if it contains additional text
         if (contentStr.includes('{')) {
-          console.log('🔄 Attempting JSON extraction from content text');
-
           // Find the JSON object within the content
           let braceCount = 0;
           const startIndex = contentStr.indexOf('{');
@@ -161,26 +160,18 @@ Provide your assessment in the following JSON format:
 
           if (startIndex !== -1 && endIndex !== -1) {
             const jsonStr = contentStr.substring(startIndex, endIndex + 1);
-            console.log('🔍 Extracted JSON string:', jsonStr.substring(0, 100));
 
             try {
               const parsed = JSON.parse(jsonStr);
               if (this.validateResponse(parsed)) {
-                console.log('✅ Successfully extracted and parsed JSON from content');
                 return parsed;
-              } else {
-                console.log('❌ Extracted JSON failed validation');
               }
-            } catch (extractParseError) {
-              console.log('❌ JSON extraction parse failed:', extractParseError.message);
+            } catch {
+              // ignore
             }
-          } else {
-            console.log('❌ Could not find complete JSON object in content');
           }
         }
-
         // Continue with content as responseText for further processing
-        console.log('🔄 Falling back to string processing with content');
       }
     }
 
@@ -194,44 +185,28 @@ Provide your assessment in the following JSON format:
       responseText = JSON.stringify(llmResponse);
     }
 
-    console.log('🔍 Processing as string:', responseText.substring(0, 200));
-
     try {
       // Try to parse as JSON directly
       const parsed = JSON.parse(responseText);
       if (this.validateResponse(parsed)) {
-        console.log('✅ Successfully parsed response as direct JSON');
         return parsed;
-      } else {
-        console.log('❌ Direct parse succeeded but failed validation');
       }
-    } catch (directError) {
-      console.log('❌ Direct string JSON parse failed:', directError.message);
-
+    } catch {
       // If direct parsing fails, try to extract JSON from text
       if (typeof responseText === 'string' && responseText.includes('{')) {
-        console.log('🔄 Attempting regex-based JSON extraction from string');
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           try {
             const parsed = JSON.parse(jsonMatch[0]);
             if (this.validateResponse(parsed)) {
-              console.log('✅ Successfully extracted JSON from response text');
               return parsed;
-            } else {
-              console.log('❌ Regex extraction succeeded but failed validation');
             }
-          } catch (regexError) {
-            console.log('❌ Regex extraction parse failed:', regexError.message);
+          } catch {
+            // ignore
           }
-        } else {
-          console.log('❌ No JSON pattern found in response text');
         }
       }
     }
-
-    console.log('⚠️ Using fallback response due to parsing failure');
-    console.log('📝 Final response text preview:', responseText?.substring(0, 300));
 
     // Fallback response if parsing fails
     return {
@@ -239,7 +214,11 @@ Provide your assessment in the following JSON format:
       score: 0.5,
       highlights: [],
       concerns: ['Assessment parsing failed'],
-      recommendations: ['Please retry the evaluation'],
+      recommendations: {
+        for_recruiter: ['Please retry the evaluation'],
+        for_candidate: [],
+        interview_focus: [],
+      },
     };
   }
 }

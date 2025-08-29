@@ -244,27 +244,43 @@ class ConsensusMechanism {
   /**
    * Generate actionable recommendations
    * @param {Object} agentResults - Agent results
-   * @param {Object} context - Additional context
    * @returns {Object} Recommendations
    */
-  // eslint-disable-next-line no-unused-vars
-  generateRecommendations(agentResults, context) {
+
+  generateRecommendations(agentResults) {
     const forRecruiter = [];
     const forCandidate = [];
     const interviewFocus = [];
 
     // Aggregate recommendations from agents
     Object.values(agentResults).forEach((result) => {
-      (result.recommendations || []).forEach((rec) => {
-        const lower = rec.toLowerCase();
-        if (lower.includes('interview') || lower.includes('ask about')) {
-          interviewFocus.push(rec);
-        } else if (lower.includes('candidate should') || lower.includes('improve')) {
-          forCandidate.push(rec);
-        } else {
-          forRecruiter.push(rec);
+      if (result.recommendations) {
+        // Handle new structured format
+        if (typeof result.recommendations === 'object' && !Array.isArray(result.recommendations)) {
+          // New format with categories
+          if (result.recommendations.for_recruiter) {
+            forRecruiter.push(...result.recommendations.for_recruiter);
+          }
+          if (result.recommendations.for_candidate) {
+            forCandidate.push(...result.recommendations.for_candidate);
+          }
+          if (result.recommendations.interview_focus) {
+            interviewFocus.push(...result.recommendations.interview_focus);
+          }
+        } else if (Array.isArray(result.recommendations)) {
+          // Old format - backwards compatibility
+          result.recommendations.forEach((rec) => {
+            const lower = rec.toLowerCase();
+            if (lower.includes('interview') || lower.includes('ask about')) {
+              interviewFocus.push(rec);
+            } else if (lower.includes('candidate should') || lower.includes('improve')) {
+              forCandidate.push(rec);
+            } else {
+              forRecruiter.push(rec);
+            }
+          });
         }
-      });
+      }
     });
 
     // Add consensus-based recommendations
@@ -280,9 +296,9 @@ class ConsensusMechanism {
 
     // Remove duplicates and limit count
     return {
-      for_recruiter: [...new Set(forRecruiter)].slice(0, 5),
-      for_candidate: [...new Set(forCandidate)].slice(0, 5),
-      interview_focus: [...new Set(interviewFocus)].slice(0, 5),
+      for_recruiter: [...new Set(forRecruiter)],
+      for_candidate: [...new Set(forCandidate)],
+      interview_focus: [...new Set(interviewFocus)],
     };
   }
 

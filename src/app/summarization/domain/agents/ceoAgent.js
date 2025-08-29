@@ -50,6 +50,11 @@ Your assessment focuses on:
 
 Provide balanced, actionable feedback that identifies both potential and areas for development. Be specific and reference actual content from the resume when possible.
 
+When providing recommendations:
+- for_recruiter: Focus on strategic hiring decisions (e.g., "Consider for leadership track", "Assess cultural fit carefully", "Verify business impact claims")
+- for_candidate: Suggest leadership and business development areas (e.g., "Develop executive presence", "Gain P&L experience", "Build strategic partnerships")
+- interview_focus: Key leadership topics to explore (e.g., "Leadership philosophy and style", "Examples of driving organizational change", "Vision for team/product growth")
+
 Your tone should be professional yet approachable, as if you're providing mentorship to a promising candidate.`;
   }
 

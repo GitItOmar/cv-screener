@@ -8,7 +8,6 @@ import HRAgent from './agents/hrAgent.js';
  */
 class AgentCoordinator {
   constructor() {
-    // Initialize agents
     this.agents = {
       ceo: new CEOAgent(),
       cto: new CTOAgent(),
@@ -23,14 +22,11 @@ class AgentCoordinator {
    */
   async executeAgents(data) {
     const startTime = Date.now();
-    console.log('🚀 Agent coordinator starting execution...');
 
     try {
-      console.log('⚡ Executing agents in parallel...');
       const results = await this.executeParallel(data);
 
       const executionTime = Date.now() - startTime;
-      console.log(`✅ All agents completed in ${executionTime}ms`);
 
       return {
         agentResults: results,
@@ -41,7 +37,6 @@ class AgentCoordinator {
         },
       };
     } catch (error) {
-      console.error('❌ Agent coordination failed:', error);
       throw new Error(`Agent coordination failed: ${error.message}`);
     }
   }
@@ -65,7 +60,6 @@ class AgentCoordinator {
       if (result.status === 'fulfilled') {
         agentResults[agentName] = result.value;
       } else {
-        console.error(`Agent ${agentName} failed:`, result.reason);
         agentResults[agentName] = this.getFailureResponse(agentName, result.reason);
       }
     });
@@ -81,22 +75,8 @@ class AgentCoordinator {
    * @returns {Promise<Object>} Agent result
    */
   async executeAgent(name, agent, data) {
-    console.log(`🚀 Starting ${name} agent execution`);
-
-    const startTime = Date.now();
-    try {
-      const result = await agent.analyze(data);
-
-      const executionTime = Date.now() - startTime;
-      console.log(`✅ Agent ${name} completed successfully in ${executionTime}ms`);
-
-      return result;
-    } catch (error) {
-      const executionTime = Date.now() - startTime;
-      console.log(`❌ Agent ${name} failed after ${executionTime}ms:`, error.message);
-
-      throw error;
-    }
+    const result = await agent.analyze(data);
+    return result;
   }
 
   /**
