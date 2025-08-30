@@ -2,279 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-// No adaptation needed - using raw data
-
-function CandidateDisplay({ candidate, index, total }) {
-  // Extract basic info from raw data
-  const basicInfo = candidate.extractedData?.basicInformation || {};
-  const workExp = candidate.extractedData?.workExperience || [];
-  const education = candidate.extractedData?.educationBackground?.degrees || [];
-  const skills = candidate.extractedData?.skillsAndSpecialties || {};
-
-  // Use raw summarization data directly
-  const displaySummarization = candidate.summarization;
-
-  // Helper functions to simplify template
-  const getEvaluationSection = () => {
-    if (candidate.evaluationError) {
-      return `EVALUATION FAILED: ${candidate.evaluationError}`;
-    }
-
-    if (!candidate.evaluation) {
-      return 'No evaluation data available';
-    }
-
-    const overallScore = candidate.evaluation.overall?.finalPercentage || 0;
-    let scoreLabel;
-    if (overallScore >= 90) {
-      scoreLabel = 'Excellent';
-    } else if (overallScore >= 75) {
-      scoreLabel = 'Good';
-    } else {
-      scoreLabel = 'Borderline';
-    }
-
-    return `OVERALL SCORE: ${overallScore}% (${scoreLabel})
-
-RECOMMENDATION: ${candidate.evaluation.summary?.recommendation?.replace('_', ' ').toUpperCase() || 'Not available'}
-
-CATEGORY BREAKDOWN:
-${Object.entries(candidate.evaluation.categories || {})
-  .map(
-    ([category, data]) =>
-      `  ${category.replace(/([A-Z])/g, ' $1').trim()}: ${data.score}/${data.maxScore} points (${data.percentage}%)
-  Reasoning: ${data.reasoning || 'No reasoning provided'}`,
-  )
-  .join('\n\n')}
-
-STRENGTHS:
-  ${candidate.evaluation.summary?.strengths?.category || 'Not specified'}: ${candidate.evaluation.summary?.strengths?.score || 'N/A'}%
-
-AREAS FOR IMPROVEMENT:
-  ${candidate.evaluation.summary?.improvements?.category || 'Not specified'}: ${candidate.evaluation.summary?.improvements?.score || 'N/A'}%`;
-  };
-
-  const getSummarizationSection = () => {
-    if (candidate.summarizationError) {
-      return `SUMMARIZATION FAILED: ${candidate.summarizationError}`;
-    }
-
-    if (!displaySummarization) {
-      return 'No summarization data available';
-    }
-
-    return `OVERALL AI RECOMMENDATION: ${displaySummarization.summary?.overall_recommendation?.replace('_', ' ').toUpperCase() || 'Not available'}
-CONFIDENCE LEVEL: ${Math.round((displaySummarization.summary?.confidence_level || 0) * 100)}%
-
-CONSENSUS REASONING:
-${displaySummarization.summary?.consensus_reasoning || 'No reasoning provided'}
-
-KEY STRENGTHS:
-${displaySummarization.summary?.key_strengths?.map((strength) => `  • ${strength}`).join('\n') || '  No strengths identified'}
-
-KEY CONCERNS:
-${displaySummarization.summary?.key_concerns?.map((concern) => `  • ${concern}`).join('\n') || '  No concerns identified'}
-
-CEO PERSPECTIVE (Leadership Assessment):
-  Score: ${Math.round((displaySummarization.agent_perspectives?.ceo?.score || 0) * 100)}%
-  Assessment: ${displaySummarization.agent_perspectives?.ceo?.assessment || 'Not available'}
-  Highlights:
-${displaySummarization.agent_perspectives?.ceo?.highlights?.map((highlight) => `    • ${highlight}`).join('\n') || '    None'}
-  Concerns:
-${displaySummarization.agent_perspectives?.ceo?.concerns?.map((concern) => `    • ${concern}`).join('\n') || '    None'}
-
-CTO PERSPECTIVE (Technical Assessment):
-  Score: ${Math.round((displaySummarization.agent_perspectives?.cto?.score || 0) * 100)}%
-  Assessment: ${displaySummarization.agent_perspectives?.cto?.assessment || 'Not available'}
-  Technical Highlights:
-${displaySummarization.agent_perspectives?.cto?.highlights?.map((highlight) => `    • ${highlight}`).join('\n') || '    None'}
-  Technical Concerns:
-${displaySummarization.agent_perspectives?.cto?.concerns?.map((concern) => `    • ${concern}`).join('\n') || '    None'}
-
-HR PERSPECTIVE (Culture & Soft Skills):
-  Score: ${Math.round((displaySummarization.agent_perspectives?.hr?.score || 0) * 100)}%
-  Assessment: ${displaySummarization.agent_perspectives?.hr?.assessment || 'Not available'}
-  Cultural Fit:
-${displaySummarization.agent_perspectives?.hr?.highlights?.map((highlight) => `    • ${highlight}`).join('\n') || '    None'}
-  HR Concerns:
-${displaySummarization.agent_perspectives?.hr?.concerns?.map((concern) => `    • ${concern}`).join('\n') || '    None'}
-
-RECOMMENDATIONS:
-  For Recruiter:
-${displaySummarization.recommendations?.for_recruiter?.map((rec) => `    • ${rec}`).join('\n') || '    None'}
-
-  For Candidate:
-${displaySummarization.recommendations?.for_candidate?.map((rec) => `    • ${rec}`).join('\n') || '    None'}
-
-  Interview Focus Areas:
-${displaySummarization.recommendations?.interview_focus?.map((focus) => `    • ${focus}`).join('\n') || '    None'}
-
-PROCESSING METADATA:
-  Processing Time: ${displaySummarization?.metadata?.processing_time_ms || 0}ms
-  Tokens Used: ${displaySummarization?.metadata?.tokens_used || 0}
-  Cost: $${displaySummarization?.metadata?.cost_usd?.toFixed(4) || '0.0000'}
-  Model: ${displaySummarization?.metadata?.model_version || 'Unknown'}`;
-  };
-
-  return (
-    <div
-      style={{
-        fontFamily: 'monospace',
-        whiteSpace: 'pre-wrap',
-        padding: '20px',
-        lineHeight: '1.6',
-      }}
-    >
-      {`================================ CANDIDATE ${index + 1} of ${total} ================================
-
-NAME: ${basicInfo.name || candidate.fileInfo?.name?.replace(/\.(pdf|docx?)$/i, '') || 'Unknown Candidate'}
-ROLE: ${workExp[0]?.position || workExp[0]?.title || 'Candidate'}
-LOCATION: ${basicInfo.location || basicInfo.city || 'Not specified'}
-EXPERIENCE: ${workExp.length > 0 ? `${workExp.length} positions` : 'Not specified'}
-EMAIL: ${basicInfo.email || 'Not provided'}
-PHONE: ${basicInfo.phone || 'Not provided'}
-FILE: ${candidate.fileInfo?.name || 'Unknown'}
-
-================================ RAW EXTRACTED DATA ================================
-
-BASIC INFORMATION:
-${JSON.stringify(basicInfo, null, 2)}
-
-TECHNICAL SKILLS:
-${skills.technical ? skills.technical.map((skill) => `  • ${skill}`).join('\n') : '  No technical skills found'}
-
-FRAMEWORKS:
-${skills.frameworks ? skills.frameworks.map((framework) => `  • ${framework}`).join('\n') : '  No frameworks found'}
-
-TOOLS:
-${skills.tools ? skills.tools.map((tool) => `  • ${tool}`).join('\n') : '  No tools found'}
-
-DOMAINS:
-${
-  Array.isArray(skills.domains) && skills.domains.length > 0
-    ? skills.domains.map((domain) => `  • ${domain}`).join('\n')
-    : '  No domains found'
-}
-
-SOFT SKILLS:
-${
-  Array.isArray(skills.softSkills) && skills.softSkills.length > 0
-    ? skills.softSkills.map((skill) => `  • ${skill}`).join('\n')
-    : '  No soft skills found'
-}
-
-CERTIFICATIONS:
-${
-  Array.isArray(skills.certifications) && skills.certifications.length > 0
-    ? skills.certifications.map((cert) => `  • ${cert}`).join('\n')
-    : '  No certifications found'
-}
-
-LANGUAGES:
-${skills.languages ? skills.languages.map((lang) => `  • ${lang.name || lang} ${lang.proficiency ? `(${lang.proficiency})` : ''}`).join('\n') : '  No languages found'}
-
-WORK EXPERIENCE:
-${
-  workExp.length > 0
-    ? workExp
-        .map(
-          (job, idx) =>
-            `  ${idx + 1}. ${job.position || job.title || 'Position'} at ${job.company || 'Company'}
-     Duration: ${job.duration || `${job.startDate || 'Unknown'} - ${job.endDate || 'Present'}`}
-     Responsibilities:
-${job.responsibilities ? job.responsibilities.map((resp) => `       - ${resp}`).join('\n') : '       - No responsibilities listed'}
-     ${job.achievements ? `Achievements:\n${job.achievements.map((ach) => `       - ${ach}`).join('\n')}` : ''}`,
-        )
-        .join('\n\n')
-    : '  No work experience data available'
-}
-
-EDUCATION:
-${
-  education.length > 0
-    ? education
-        .map(
-          (edu, idx) =>
-            `  ${idx + 1}. ${edu.type || 'Degree'} in ${edu.field || 'Field'} 
-     Institution: ${edu.institution || 'Institution'}
-     Year: ${edu.graduationYear || 'Year'}
-     ${edu.gpa ? `GPA: ${edu.gpa}` : ''}`,
-        )
-        .join('\n\n')
-    : '  No education data available'
-}
-
-RELEVANT COURSEWORK:
-${
-  candidate.extractedData?.educationBackground?.relevantCoursework?.length > 0
-    ? candidate.extractedData.educationBackground.relevantCoursework
-        .map((course) => `  • ${course}`)
-        .join('\n')
-    : '  No relevant coursework listed'
-}
-
-ACADEMIC PROJECTS:
-${
-  candidate.extractedData?.educationBackground?.projects?.length > 0
-    ? candidate.extractedData.educationBackground.projects
-        .map((project, idx) => `  ${idx + 1}. ${project}`)
-        .join('\n')
-    : '  No academic projects listed'
-}
-
-CERTIFICATIONS:
-${
-  candidate.extractedData?.certifications
-    ? candidate.extractedData.certifications
-        .map(
-          (cert, idx) =>
-            `  ${idx + 1}. ${cert.name || cert}
-     ${cert.issuer ? `Issuer: ${cert.issuer}` : ''}
-     ${cert.date ? `Date: ${cert.date}` : ''}`,
-        )
-        .join('\n\n')
-    : '  No certifications found'
-}
-
-PROJECTS:
-${
-  candidate.extractedData?.projects
-    ? candidate.extractedData.projects
-        .map(
-          (project, idx) =>
-            `  ${idx + 1}. ${project.name || project.title || 'Project'}
-     ${project.description ? `Description: ${project.description}` : ''}
-     ${project.technologies ? `Technologies: ${Array.isArray(project.technologies) ? project.technologies.join(', ') : project.technologies}` : ''}`,
-        )
-        .join('\n\n')
-    : '  No projects found'
-}
-
-================================ EVALUATION RESULTS ================================
-
-${getEvaluationSection()}
-
-================================ AI SUMMARIZATION ================================
-
-${getSummarizationSection()}
-
-================================ COMPLETE RAW DATA STRUCTURE ================================
-
-${JSON.stringify(candidate, null, 2)}
-
-`}
-    </div>
-  );
-}
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import CandidateCard from './components/CandidateCard';
+import CandidateCardSkeleton from './components/CandidateCardSkeleton';
 
 export default function ReviewPage() {
   const [candidates, setCandidates] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
 
   // Initialize candidates from sessionStorage
   useEffect(() => {
     const loadCandidates = () => {
-      // Try to load processed candidates from sessionStorage
       if (typeof window !== 'undefined') {
         const storedCandidates = window.sessionStorage.getItem('processedCandidates');
 
@@ -300,39 +41,230 @@ export default function ReviewPage() {
     loadCandidates();
   }, []);
 
-  if (loading) {
-    return <div style={{ fontFamily: 'monospace', padding: '20px' }}>Loading candidates...</div>;
-  }
+  // Navigation functions
+  const goToPrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
 
-  if (candidates.length === 0) {
+  const goToNext = () => {
+    if (currentIndex < candidates.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  const toggleDetails = () => {
+    setShowDetails(!showDetails);
+  };
+
+  // Current candidate
+  const currentCandidate = candidates[currentIndex];
+
+  // Loading state
+  if (loading) {
     return (
-      <div style={{ fontFamily: 'monospace', padding: '20px' }}>
-        <h1>TalentScreen - Review Page</h1>
-        <p>
-          No candidates to review. <Link href='/upload'>Upload CVs</Link> to start the AI evaluation
-          process.
-        </p>
+      <div className='min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800'>
+        <div className='container mx-auto px-4 py-8'>
+          <div className='mb-8'>
+            <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>Candidate Review</h1>
+            <p className='text-gray-600 dark:text-gray-300 mt-2'>Loading candidates...</p>
+          </div>
+          <CandidateCardSkeleton />
+        </div>
       </div>
     );
   }
 
-  return (
-    <div style={{ fontFamily: 'monospace', padding: '20px' }}>
-      <h1>TalentScreen - Candidate Review</h1>
-      <p>Total Candidates: {candidates.length}</p>
-      <p>
-        <Link href='/upload'>Upload More CVs</Link>
-      </p>
-      <hr style={{ margin: '20px 0' }} />
+  // No candidates state
+  if (candidates.length === 0) {
+    return (
+      <div className='min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800'>
+        <div className='container mx-auto px-4 py-8'>
+          <div className='text-center py-12'>
+            <h1 className='text-3xl font-bold text-gray-900 dark:text-white mb-4'>
+              No Candidates to Review
+            </h1>
+            <p className='text-gray-600 dark:text-gray-300 mb-8'>
+              Upload CVs to start the AI evaluation process
+            </p>
+            <Link href='/upload'>
+              <Button size='lg'>Upload CVs</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-      {candidates.map((candidate, index) => (
-        <CandidateDisplay
-          key={candidate.id || index}
-          candidate={candidate}
-          index={index}
-          total={candidates.length}
-        />
-      ))}
+  // Main review interface
+  return (
+    <div className='min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800'>
+      <div className='container mx-auto px-4 py-8'>
+        {/* Header */}
+        <div className='mb-8'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>Candidate Review</h1>
+              <p className='text-gray-600 dark:text-gray-300 mt-2'>
+                Review and make decisions on candidates
+              </p>
+            </div>
+            <Link href='/upload'>
+              <Button variant='outline'>Upload More CVs</Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className='max-w-4xl mx-auto'>
+          {/* Card Display */}
+          <div className='mb-8'>
+            <CandidateCard
+              candidate={currentCandidate}
+              index={currentIndex}
+              total={candidates.length}
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className='flex justify-center items-center space-x-4 mb-8'>
+            <Button
+              variant='outline'
+              size='lg'
+              onClick={goToPrevious}
+              disabled={currentIndex === 0}
+              className='w-32'
+            >
+              <ChevronLeft className='mr-2 h-4 w-4' />
+              Previous
+            </Button>
+
+            <Button variant='default' size='lg' onClick={toggleDetails} className='w-32'>
+              <Eye className='mr-2 h-4 w-4' />
+              Details
+            </Button>
+
+            <Button
+              variant='outline'
+              size='lg'
+              onClick={goToNext}
+              disabled={currentIndex === candidates.length - 1}
+              className='w-32'
+            >
+              Next
+              <ChevronRight className='ml-2 h-4 w-4' />
+            </Button>
+          </div>
+
+          {/* Keyboard Shortcuts Hint */}
+          <div className='text-center text-sm text-gray-500 dark:text-gray-400'>
+            <p>Use arrow keys to navigate • Press D for details</p>
+          </div>
+
+          {/* Temporary Details View */}
+          {showDetails && currentCandidate && (
+            <div className='mt-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg'>
+              <h2 className='text-2xl font-bold mb-4'>Detailed Information</h2>
+              <div className='space-y-4'>
+                <div>
+                  <h3 className='font-semibold text-lg mb-2'>Work Experience</h3>
+                  <div className='space-y-2'>
+                    {currentCandidate.extractedData?.workExperience?.map((job, idx) => (
+                      <div key={`job-${idx}`} className='p-3 bg-gray-50 dark:bg-gray-700 rounded'>
+                        <p className='font-medium'>
+                          {job.position} at {job.company}
+                        </p>
+                        <p className='text-sm text-gray-600 dark:text-gray-300'>
+                          {job.duration || `${job.startDate} - ${job.endDate}`}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className='font-semibold text-lg mb-2'>Education</h3>
+                  <div className='space-y-2'>
+                    {currentCandidate.extractedData?.educationBackground?.degrees?.map(
+                      (edu, idx) => (
+                        <div key={`edu-${idx}`} className='p-3 bg-gray-50 dark:bg-gray-700 rounded'>
+                          <p className='font-medium'>
+                            {edu.type} in {edu.field}
+                          </p>
+                          <p className='text-sm text-gray-600 dark:text-gray-300'>
+                            {edu.institution} - {edu.graduationYear}
+                          </p>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className='font-semibold text-lg mb-2'>All Skills</h3>
+                  <div className='space-y-2'>
+                    {currentCandidate.extractedData?.skillsAndSpecialties?.technical && (
+                      <div>
+                        <p className='font-medium text-sm'>Technical Skills:</p>
+                        <p className='text-sm text-gray-600 dark:text-gray-300'>
+                          {currentCandidate.extractedData.skillsAndSpecialties.technical.join(', ')}
+                        </p>
+                      </div>
+                    )}
+                    {currentCandidate.extractedData?.skillsAndSpecialties?.frameworks && (
+                      <div>
+                        <p className='font-medium text-sm'>Frameworks:</p>
+                        <p className='text-sm text-gray-600 dark:text-gray-300'>
+                          {currentCandidate.extractedData.skillsAndSpecialties.frameworks.join(
+                            ', ',
+                          )}
+                        </p>
+                      </div>
+                    )}
+                    {currentCandidate.extractedData?.skillsAndSpecialties?.tools && (
+                      <div>
+                        <p className='font-medium text-sm'>Tools:</p>
+                        <p className='text-sm text-gray-600 dark:text-gray-300'>
+                          {currentCandidate.extractedData.skillsAndSpecialties.tools.join(', ')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* AI Analysis */}
+                {currentCandidate.summarization?.summary && (
+                  <div>
+                    <h3 className='font-semibold text-lg mb-2'>AI Analysis</h3>
+                    <div className='p-3 bg-gray-50 dark:bg-gray-700 rounded space-y-2'>
+                      <p className='text-sm'>
+                        <span className='font-medium'>Consensus:</span>{' '}
+                        {currentCandidate.summarization.summary.consensus_reasoning}
+                      </p>
+                      {currentCandidate.summarization.recommendations?.interview_focus && (
+                        <div>
+                          <p className='font-medium text-sm'>Interview Focus Areas:</p>
+                          <ul className='list-disc list-inside text-sm text-gray-600 dark:text-gray-300'>
+                            {currentCandidate.summarization.recommendations.interview_focus.map(
+                              (focus, idx) => (
+                                <li key={`focus-${idx}`}>{focus}</li>
+                              ),
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <Button onClick={toggleDetails} className='mt-4'>
+                Close Details
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
