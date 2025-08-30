@@ -32,7 +32,7 @@ REQUIRED JSON OUTPUT STRUCTURE:
     "learningInitiatives": ["array", "of", "learning", "activities"]
   },
   "skillsAndSpecialties": {
-    "technical": ["array", "of", "technical", "skills"],
+    "technical": ["array", "of", "programming", "languages"],
     "frameworks": ["array", "of", "frameworks"],
     "tools": ["array", "of", "tools"],
     "domains": ["array", "of", "domain", "expertise"],
@@ -91,13 +91,24 @@ EXTRACTION GUIDELINES:
 2. Self-Evaluation: Extract from summary, objective, or personal statements
    - Personal Projects: Look for side projects, portfolio items, open source contributions, hackathons
    - Learning Initiatives: Extract courses, certifications, bootcamps, self-directed learning, online training
-3. Skills & Specialties: Categorize technical skills appropriately (languages vs frameworks vs tools)
-   - For languages field: Extract spoken/written languages with proficiency levels
-   - Look for explicit proficiency statements (e.g., "Fluent in English", "C1 German")
+3. Skills & Specialties: CRITICAL - Categorize skills accurately:
+   - technical: ONLY programming/markup/query languages (Python, JavaScript, Java, C++, HTML, CSS, SQL, TypeScript, Go, Rust, Swift, Kotlin, PHP, Ruby, C#, Apex, MATLAB, R, Scala)
+   - frameworks: Application frameworks and runtime environments (React, Angular, Vue, Django, Spring, Express, Next.js, Flask, Rails, Laravel, Svelte, Node.js, .NET, FastAPI)
+   - tools: Development tools, IDEs, version control, databases, platforms, and software (Git, GitHub, Docker, Kubernetes, VS Code, IntelliJ, PostgreSQL, MongoDB, MySQL, Redis, AWS, Azure, GCP, Salesforce, Jenkins, Jira, Postman, Webpack, npm, yarn, Pandas, NumPy, Matplotlib, TensorFlow, Microsoft 365)
+   - domains: Industry/domain expertise (e-commerce, fintech, healthcare, machine learning, data science, cybersecurity, cloud computing, DevOps)
+   - For languages field: Extract spoken/written languages with proficiency levels (NOT programming languages)
    - Common proficiency indicators: native, fluent, advanced, intermediate, basic
 4. Work Experience: Extract in reverse chronological order, calculate duration accurately
 5. Basic Information: Extract contact details and professional profiles
 6. Education: Include formal degrees, relevant coursework, and significant projects
+
+IMPORTANT CATEGORIZATION RULES:
+- Node.js goes in frameworks (it's a runtime environment)
+- Salesforce goes in tools (it's a platform)
+- HTML/CSS go in technical (they are markup/styling languages)
+- Libraries like Pandas, NumPy go in tools
+- Databases like PostgreSQL, MongoDB go in tools
+- Cloud platforms like AWS, Azure go in tools
 
 DATE FORMATTING:
 - Use YYYY-MM format when month is available (e.g., "2023-03")

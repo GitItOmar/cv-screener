@@ -143,14 +143,32 @@ ${JSON.stringify(basicInfo, null, 2)}
 TECHNICAL SKILLS:
 ${skills.technical ? skills.technical.map((skill) => `  • ${skill}`).join('\n') : '  No technical skills found'}
 
-PROGRAMMING LANGUAGES:
-${skills.programmingLanguages ? skills.programmingLanguages.map((lang) => `  • ${lang}`).join('\n') : '  No programming languages found'}
-
 FRAMEWORKS:
 ${skills.frameworks ? skills.frameworks.map((framework) => `  • ${framework}`).join('\n') : '  No frameworks found'}
 
 TOOLS:
 ${skills.tools ? skills.tools.map((tool) => `  • ${tool}`).join('\n') : '  No tools found'}
+
+DOMAINS:
+${
+  Array.isArray(skills.domains) && skills.domains.length > 0
+    ? skills.domains.map((domain) => `  • ${domain}`).join('\n')
+    : '  No domains found'
+}
+
+SOFT SKILLS:
+${
+  Array.isArray(skills.softSkills) && skills.softSkills.length > 0
+    ? skills.softSkills.map((skill) => `  • ${skill}`).join('\n')
+    : '  No soft skills found'
+}
+
+CERTIFICATIONS:
+${
+  Array.isArray(skills.certifications) && skills.certifications.length > 0
+    ? skills.certifications.map((cert) => `  • ${cert}`).join('\n')
+    : '  No certifications found'
+}
 
 LANGUAGES:
 ${skills.languages ? skills.languages.map((lang) => `  • ${lang.name || lang} ${lang.proficiency ? `(${lang.proficiency})` : ''}`).join('\n') : '  No languages found'}
