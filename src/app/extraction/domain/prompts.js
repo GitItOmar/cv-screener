@@ -20,8 +20,10 @@ REQUIRED JSON OUTPUT STRUCTURE:
   "positionAppliedFor": {
     "title": "string or null",
     "level": "junior|mid-level|senior|leadership",
-    "yearsRequired": number or null,
-    "keywords": ["array", "of", "relevant", "keywords"]
+    "roleType": "technical_ic|tech_lead|eng_manager|exec_leader",
+    "domainFocus": "frontend|backend|fullstack|mobile|data|infrastructure|other",
+    "keywords": ["array", "of", "relevant", "keywords"],
+    "softSkillsImportance": "low|medium|high|critical"
   },
   "selfEvaluation": {
     "summary": "string or null",
@@ -88,6 +90,24 @@ LEVEL CLASSIFICATION GUIDELINES:
 
 EXTRACTION GUIDELINES:
 1. Position Applied For: Look for job titles mentioned, target roles, or infer from experience level
+   - roleType Classification:
+     * technical_ic: Individual contributors (Software Engineer, Developer, Data Scientist, DevOps Engineer)
+     * tech_lead: Technical leaders (Tech Lead, Principal Engineer, Staff Engineer, Architect)
+     * eng_manager: People managers (Engineering Manager, Team Lead, Development Manager)
+     * exec_leader: Senior executives (CTO, VP Engineering, Director of Engineering, Head of Engineering)
+   - domainFocus: Identify primary technical domain based on skills and experience
+     * frontend: React, Vue, Angular, JavaScript, HTML/CSS, UI/UX focus
+     * backend: Node.js, Python, Java, APIs, databases, server-side development
+     * fullstack: Full-stack development, MERN/MEAN stack, end-to-end development
+     * mobile: iOS, Android, React Native, Flutter, mobile app development
+     * data: Data science, machine learning, AI, analytics, big data
+     * infrastructure: DevOps, cloud (AWS/Azure/GCP), containers, CI/CD
+     * other: If none of the above clearly apply
+   - softSkillsImportance: Determine based on role type and level
+     * low: Junior technical roles, focus on technical skills
+     * medium: Mid-level roles, balanced technical and soft skills
+     * high: Senior roles, technical leadership, client-facing roles
+     * critical: Management roles, executive positions, team leadership
 2. Self-Evaluation: Extract from summary, objective, or personal statements
    - Personal Projects: Look for side projects, portfolio items, open source contributions, hackathons
    - Learning Initiatives: Extract courses, certifications, bootcamps, self-directed learning, online training

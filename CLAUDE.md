@@ -78,3 +78,4 @@ src/app/(module)/
 - Components are in JSX format (not TypeScript)
 - Tailwind CSS for styling with CSS variables
 - Responsive design with mobile drawer for candidate details
+- dont write unused code

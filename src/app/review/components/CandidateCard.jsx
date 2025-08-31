@@ -3,7 +3,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
-import { MapPin, Briefcase, Award, AlertCircle, TrendingUp } from 'lucide-react';
+import { MapPin, Briefcase, Award, AlertCircle, TrendingUp, Target, Code } from 'lucide-react';
+import {
+  getRoleTypeDisplayName,
+  getDomainFocusDisplayName,
+} from '@/app/review/utils/jobContextUtils';
 
 /**
  * Extracts key highlights from candidate data
@@ -122,6 +126,7 @@ export default function CandidateCard({ candidate, index, total }) {
   const basicInfo = candidate.extractedData?.basicInformation || {};
   const workExp = candidate.extractedData?.workExperience || [];
   const skills = candidate.extractedData?.skillsAndSpecialties || {};
+  const positionAppliedFor = candidate.extractedData?.positionAppliedFor || {};
 
   // Calculate metrics
   const yearsOfExperience = calculateYearsOfExperience(workExp);
@@ -140,6 +145,16 @@ export default function CandidateCard({ candidate, index, total }) {
   const currentRole = workExp[0]?.position || workExp[0]?.title || 'Candidate';
   const currentCompany = workExp[0]?.company || '';
   const location = basicInfo.location || basicInfo.city || 'Location not specified';
+
+  // Enhanced position information
+  const targetRole = positionAppliedFor.title || currentRole;
+  const roleType = positionAppliedFor.roleType
+    ? getRoleTypeDisplayName(positionAppliedFor.roleType)
+    : null;
+  const domainFocus = positionAppliedFor.domainFocus
+    ? getDomainFocusDisplayName(positionAppliedFor.domainFocus)
+    : null;
+  const seniorityLevel = positionAppliedFor.level || 'mid-level';
 
   // Generate initials for avatar
   const initials = candidateName
@@ -166,9 +181,25 @@ export default function CandidateCard({ candidate, index, total }) {
             <div>
               <CardTitle className='text-2xl font-bold'>{candidateName}</CardTitle>
               <CardDescription className='text-base mt-1'>
-                {currentRole}
+                {targetRole}
                 {currentCompany && ` at ${currentCompany}`}
               </CardDescription>
+              {(roleType || domainFocus) && (
+                <div className='flex gap-2 mt-2'>
+                  {roleType && (
+                    <Badge variant='outline' className='text-xs'>
+                      <Target className='h-3 w-3 mr-1' />
+                      {roleType}
+                    </Badge>
+                  )}
+                  {domainFocus && (
+                    <Badge variant='outline' className='text-xs'>
+                      <Code className='h-3 w-3 mr-1' />
+                      {domainFocus}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -200,7 +231,9 @@ export default function CandidateCard({ candidate, index, total }) {
         <div className='flex flex-wrap gap-4 text-sm'>
           <div className='flex items-center space-x-2 text-gray-600'>
             <Briefcase className='h-4 w-4' />
-            <span>{yearsOfExperience} years experience</span>
+            <span>
+              {yearsOfExperience} years experience ({seniorityLevel})
+            </span>
           </div>
           <div className='flex items-center space-x-2 text-gray-600'>
             <MapPin className='h-4 w-4' />
