@@ -19,6 +19,7 @@ This is a CV screening application built with Next.js 15 and React 19. The appli
 
 - **Framework**: Next.js 15 with App Router (React 19)
 - **Styling**: Tailwind CSS 4 with shadcn/ui components
+- **Animations**: Framer Motion with use-gesture for gestures and animations
 - **State Management**: React hooks (useState, useEffect)
 - **File Storage**: Vercel Blob storage
 - **Icons**: Lucide React
@@ -58,24 +59,11 @@ src/app/(module)/
    - Examples: `llm-client`, `file-parser`
    - Used across multiple modules for common functionality
 
-#### Current Module Structure
-
-- **extraction**: Has public API, domain layer
-- **evaluation**: Has public API, domain layer
-- **upload**: Has domain layer, page.jsx (no public folder needed per requirements)
-- **review**: Has page.jsx, utils (no public folder needed per requirements)
-
-### Key Features
-
-1. **Bulk CV Upload**: Supports PDF, DOC, DOCX, ZIP, CSV files up to 10MB each (max 200 files)
-2. **AI Pre-screening**: Mock scoring system (real implementation would integrate with AI service)
-3. **Swipe Review Interface**: Keyboard shortcuts (←/→ for reject/accept, U for undo, S for skip)
-4. **GDPR Compliance**: User consent checkbox and data protection features
-
 ### Component Architecture
 
 - Uses shadcn/ui component library with "new-york" style variant
 - Components are in JSX format (not TypeScript)
 - Tailwind CSS for styling with CSS variables
 - Responsive design with mobile drawer for candidate details
-- dont write unused code
+- **Toast Notifications**: Uses `react-hot-toast` package
+- **IMPORTANT**: NEVER write unused code - only implement what is needed and will be used
