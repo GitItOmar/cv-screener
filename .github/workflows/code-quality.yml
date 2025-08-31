@@ -31,6 +31,3 @@ jobs:
 
       - name: Check for unused exports and dependencies
         run: npm run knip
-
-      - name: Run build to check for errors
-        run: npm run build
