@@ -7,12 +7,16 @@ import { ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import CandidateCard from './components/CandidateCard';
 import CandidateCardSkeleton from './components/CandidateCardSkeleton';
 import SwipeContainer from './components/SwipeContainer';
+import KeyboardHints from './components/KeyboardHints';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 export default function ReviewPage() {
   const [candidates, setCandidates] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [decisionHistory, setDecisionHistory] = useState([]);
 
   // Initialize candidates from sessionStorage
   useEffect(() => {
@@ -62,20 +66,20 @@ export default function ReviewPage() {
   // Current candidate
   const currentCandidate = candidates[currentIndex];
 
-  // Swipe gesture handlers
-  const handleSwipeLeft = () => {
-    // Reject candidate (move to next)
-    if (process.env.NODE_ENV === 'development') {
-      console.log(
-        'Rejected candidate:',
-        currentCandidate?.extractedData?.basicInformation?.fullName,
-      );
-    }
-    goToNext();
+  // Decision tracking
+  const recordDecision = (decision, candidateIndex) => {
+    const newDecision = {
+      decision,
+      candidateIndex,
+      candidateId: candidates[candidateIndex]?.id || candidateIndex,
+      timestamp: Date.now(),
+    };
+    setDecisionHistory((prev) => [...prev.slice(-49), newDecision]); // Keep last 50
   };
 
-  const handleSwipeRight = () => {
-    // Accept candidate (move to next)
+  // Enhanced navigation with decision tracking
+  const handleAccept = () => {
+    recordDecision('accept', currentIndex);
     if (process.env.NODE_ENV === 'development') {
       console.log(
         'Accepted candidate:',
@@ -85,10 +89,70 @@ export default function ReviewPage() {
     goToNext();
   };
 
+  const handleReject = () => {
+    recordDecision('reject', currentIndex);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(
+        'Rejected candidate:',
+        currentCandidate?.extractedData?.basicInformation?.fullName,
+      );
+    }
+    goToNext();
+  };
+
+  // Swipe gesture handlers
+  const handleSwipeLeft = () => {
+    if (!isPaused) {
+      handleReject();
+    }
+  };
+
+  const handleSwipeRight = () => {
+    if (!isPaused) {
+      handleAccept();
+    }
+  };
+
   const handleSwipeUp = () => {
     // Show details
     setShowDetails(true);
   };
+
+  // Undo functionality
+  const handleUndo = () => {
+    if (decisionHistory.length === 0) return;
+
+    const lastDecision = decisionHistory[decisionHistory.length - 1];
+    setDecisionHistory((prev) => prev.slice(0, -1));
+    setCurrentIndex(lastDecision.candidateIndex);
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Undid decision:', lastDecision);
+    }
+  };
+
+  // Skip functionality
+  const handleSkip = () => {
+    recordDecision('skip', currentIndex);
+    goToNext();
+  };
+
+  // Pause/Resume functionality
+  const handlePauseResume = () => {
+    setIsPaused(!isPaused);
+  };
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onAccept: () => !isPaused && handleAccept(),
+    onReject: () => !isPaused && handleReject(),
+    onDetails: () => setShowDetails(!showDetails),
+    onSkip: () => !isPaused && handleSkip(),
+    onUndo: handleUndo,
+    onPause: handlePauseResume,
+    enabled: !loading && candidates.length > 0,
+    detailsOpen: showDetails,
+  });
 
   // Loading state
   if (loading) {
@@ -153,7 +217,7 @@ export default function ReviewPage() {
               onSwipeLeft={handleSwipeLeft}
               onSwipeRight={handleSwipeRight}
               onSwipeUp={handleSwipeUp}
-              disabled={candidates.length <= 1}
+              disabled={candidates.length <= 1 || isPaused}
               threshold={50}
               className='h-auto'
             >
@@ -195,9 +259,17 @@ export default function ReviewPage() {
             </Button>
           </div>
 
-          {/* Keyboard Shortcuts Hint */}
-          <div className='text-center text-sm text-gray-500 dark:text-gray-400'>
-            <p>Use arrow keys to navigate • Press D for details</p>
+          {/* Status and Controls */}
+          <div className='text-center text-sm text-gray-500 dark:text-gray-400 space-y-2'>
+            {isPaused && (
+              <div className='text-orange-600 font-medium'>
+                Review Paused - Press Space to Resume
+              </div>
+            )}
+            {decisionHistory.length > 0 && (
+              <div className='text-blue-600'>Press U to undo last action</div>
+            )}
+            <p>Use arrow keys: ← Reject • → Accept • ↑ Details • ↓ Skip</p>
           </div>
 
           {/* Temporary Details View */}
@@ -302,6 +374,13 @@ export default function ReviewPage() {
             </div>
           )}
         </div>
+
+        {/* Keyboard Hints for Desktop */}
+        <KeyboardHints
+          show={!loading && candidates.length > 0}
+          canUndo={decisionHistory.length > 0}
+          isPaused={isPaused}
+        />
       </div>
     </div>
   );

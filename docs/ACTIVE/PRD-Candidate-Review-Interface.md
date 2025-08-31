@@ -382,8 +382,6 @@ const swipeHandlers = useGesture({
 
 - [ ] Display overall AI recommendation (traffic light system)
 - [ ] Show confidence level as percentage
-- [ ] Highlight top 3 strengths
-- [ ] Flag top 3 concerns
 - [ ] Display consensus from multiple AI perspectives
 - [ ] Expandable detailed analysis
 - [ ] Visual differentiation of AI vs extracted data
