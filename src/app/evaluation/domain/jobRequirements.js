@@ -2,10 +2,11 @@
  * Job requirements for Shopify Junior Developer position
  */
 export const jobRequirements = {
-  position: {
+  positionAppliedFor: {
     title: 'Shopify Junior Developer',
     level: 'junior',
     department: 'Development',
+    roleType: 'technical_ic',
   },
   experience: {
     yearsRequired: 1,

@@ -61,7 +61,16 @@ When providing recommendations:
 - for_candidate: Suggest professional and soft skill development (e.g., "Develop stakeholder management skills", "Build cross-functional collaboration experience", "Strengthen written communication")
 - interview_focus: HR and culture topics to explore (e.g., "Team collaboration examples", "Conflict resolution approaches", "Career motivations and goals", "Work style preferences")
 
-Your tone should be warm and supportive, while maintaining professional objectivity in assessment.`;
+Your tone should be warm and supportive, while maintaining professional objectivity in assessment.
+
+RELEVANCE SCORING FOCUS:
+As HR, prioritize insights based on their cultural and soft skills relevance:
+- For leadership roles (eng_manager, exec_leader): Weight communication, teamwork, and cultural fit higher (80-100)
+- For technical roles (technical_ic, tech_lead): Focus on collaboration and professional development (60-80)
+- Use soft skills importance score from positionAppliedFor to adjust relevance
+- Score pure technical skills lower unless they relate to collaboration or learning
+- Emphasize insights about retention, cultural fit, and team dynamics
+- Consider work stability patterns more relevant for senior positions`;
   }
 
   /**

@@ -1,3 +1,5 @@
+import { jobRequirements } from '@/app/evaluation/public';
+
 /**
  * Consensus mechanism for reconciling multiple agent assessments
  * Generates unified recommendations based on weighted agent opinions
@@ -38,7 +40,7 @@ class ConsensusMechanism {
     const recommendation = this.determineRecommendation(weightedScore);
 
     // Aggregate highlights and concerns
-    const aggregated = this.aggregateInsights(validAgents);
+    const aggregated = this.aggregateInsights(validAgents, { jobRequirements });
 
     // Identify conflicts and agreements
     const analysis = this.analyzeAgreement(validAgents);
@@ -56,6 +58,7 @@ class ConsensusMechanism {
         weighted_score: weightedScore,
         key_strengths: aggregated.topStrengths,
         key_concerns: aggregated.topConcerns,
+        mixed_insights: aggregated.mixedInsightsByRelevance, // New: mixed insights for card display
         consensus_reasoning: reasoning,
       },
       agreement_analysis: analysis,
@@ -95,55 +98,143 @@ class ConsensusMechanism {
   }
 
   /**
-   * Aggregate insights from all agents
+   * Aggregate insights from all agents with relevance filtering
    * @param {Object} agentResults - Agent results
+   * @param {Object} context - Job context for relevance filtering
    * @returns {Object} Aggregated insights
    */
-  aggregateInsights(agentResults) {
+  aggregateInsights(agentResults, context = {}) {
     const allStrengths = [];
     const allConcerns = [];
-    const strengthCounts = {};
-    const concernCounts = {};
+    const strengthData = new Map();
+    const concernData = new Map();
 
-    // Collect all strengths and concerns
-    for (const result of Object.values(agentResults)) {
+    // Extract job context for relevance weighting
+    const jobContext = context.jobRequirements?.positionAppliedFor || {};
+    const roleType = jobContext.roleType || 'technical_ic';
+
+    // Collect all strengths and concerns with relevance scores
+    for (const [agent, result] of Object.entries(agentResults)) {
       (result.highlights || []).forEach((strength) => {
-        allStrengths.push(strength);
-        const key = this.normalizeInsight(strength);
-        strengthCounts[key] = (strengthCounts[key] || 0) + 1;
+        // Handle both old (string) and new (object with relevance) formats
+        const text = typeof strength === 'string' ? strength : strength.text;
+        const relevance = typeof strength === 'object' ? strength.relevance : 70;
+        const reasoning = typeof strength === 'object' ? strength.reasoning : '';
+
+        allStrengths.push(text);
+        const key = this.normalizeInsight(text);
+
+        if (!strengthData.has(key)) {
+          strengthData.set(key, {
+            text,
+            count: 0,
+            agents: [],
+            maxRelevance: relevance,
+            weightedRelevance: this.applyAgentWeighting(relevance, agent, roleType),
+            reasoning,
+            source: agent,
+          });
+        } else {
+          const existing = strengthData.get(key);
+          const weighted = this.applyAgentWeighting(relevance, agent, roleType);
+          if (weighted > existing.weightedRelevance) {
+            existing.weightedRelevance = weighted;
+            existing.maxRelevance = relevance;
+            existing.reasoning = reasoning;
+            existing.source = agent;
+          }
+        }
+        strengthData.get(key).count++;
+        strengthData.get(key).agents.push(agent);
       });
 
       (result.concerns || []).forEach((concern) => {
-        allConcerns.push(concern);
-        const key = this.normalizeInsight(concern);
-        concernCounts[key] = (concernCounts[key] || 0) + 1;
+        // Handle both old (string) and new (object with relevance) formats
+        const text = typeof concern === 'string' ? concern : concern.text;
+        const relevance = typeof concern === 'object' ? concern.relevance : 70;
+        const reasoning = typeof concern === 'object' ? concern.reasoning : '';
+
+        allConcerns.push(text);
+        const key = this.normalizeInsight(text);
+
+        if (!concernData.has(key)) {
+          concernData.set(key, {
+            text,
+            count: 0,
+            agents: [],
+            maxRelevance: relevance,
+            weightedRelevance: this.applyAgentWeighting(relevance, agent, roleType),
+            reasoning,
+            source: agent,
+          });
+        } else {
+          const existing = concernData.get(key);
+          const weighted = this.applyAgentWeighting(relevance, agent, roleType);
+          if (weighted > existing.weightedRelevance) {
+            existing.weightedRelevance = weighted;
+            existing.maxRelevance = relevance;
+            existing.reasoning = reasoning;
+            existing.source = agent;
+          }
+        }
+        concernData.get(key).count++;
+        concernData.get(key).agents.push(agent);
       });
     }
 
-    // Sort by frequency and select top items
-    const topStrengths = Object.entries(strengthCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([strength]) => this.denormalizeInsight(strength, allStrengths));
+    // Get relevance thresholds based on role type
+    const minRelevance = this.getMinRelevanceThreshold(roleType);
+    const maxInsights = this.getMaxInsights(roleType);
 
-    const topConcerns = Object.entries(concernCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([concern]) => this.denormalizeInsight(concern, allConcerns));
+    // Combine strengths and concerns, then sort by relevance
+    const allInsights = [
+      ...Array.from(strengthData.values()).map((s) => ({ ...s, type: 'strength' })),
+      ...Array.from(concernData.values()).map((c) => ({ ...c, type: 'concern' })),
+    ];
+
+    // Filter by minimum relevance and sort by weighted relevance
+    const topInsights = allInsights
+      .filter((insight) => insight.weightedRelevance >= minRelevance)
+      .sort((a, b) => {
+        // Primary sort by relevance, secondary by consensus
+        if (Math.abs(b.weightedRelevance - a.weightedRelevance) > 5) {
+          return b.weightedRelevance - a.weightedRelevance;
+        }
+        return b.count - a.count;
+      })
+      .slice(0, maxInsights);
+
+    // Separate back into strengths and concerns for backward compatibility
+    const topStrengths = topInsights
+      .filter((insight) => insight.type === 'strength')
+      .map((s) => s.text);
+
+    const topConcerns = topInsights
+      .filter((insight) => insight.type === 'concern')
+      .map((c) => c.text);
+
+    // Create a mixed insights array sorted by relevance for the candidate card
+    const mixedInsightsByRelevance = topInsights.map((insight) => insight.text);
 
     return {
       topStrengths,
       topConcerns,
+      mixedInsightsByRelevance, // New: insights mixed and sorted by relevance
       allStrengths,
       allConcerns,
       strengthConsensus: this.calculateInsightConsensus(
-        strengthCounts,
+        Object.fromEntries(Array.from(strengthData.entries()).map(([k, v]) => [k, v.count])),
         Object.keys(agentResults).length,
       ),
       concernConsensus: this.calculateInsightConsensus(
-        concernCounts,
+        Object.fromEntries(Array.from(concernData.entries()).map(([k, v]) => [k, v.count])),
         Object.keys(agentResults).length,
       ),
+      relevanceData: {
+        strengths: Array.from(strengthData.values()),
+        concerns: Array.from(concernData.values()),
+        mixedInsights: topInsights, // Full insight data with types and relevance scores
+      },
     };
   }
 
@@ -332,12 +423,64 @@ class ConsensusMechanism {
   }
 
   /**
+   * Apply agent expertise weighting based on role type
+   * @param {number} relevance - Base relevance score from agent
+   * @param {string} agent - Agent type (ceo, cto, hr)
+   * @param {string} roleType - Role type from job context
+   * @returns {number} Weighted relevance score
+   */
+  applyAgentWeighting(relevance, agent, roleType) {
+    // Agent expertise multipliers by role type
+    const expertiseMultipliers = {
+      technical_ic: { cto: 1.3, hr: 0.9, ceo: 0.8 },
+      tech_lead: { cto: 1.2, ceo: 1.0, hr: 0.9 },
+      eng_manager: { ceo: 1.2, hr: 1.1, cto: 0.9 },
+      exec_leader: { ceo: 1.3, hr: 1.0, cto: 0.7 },
+    };
+
+    const multiplier = expertiseMultipliers[roleType]?.[agent] || 1.0;
+    return Math.min(relevance * multiplier, 100); // Cap at 100
+  }
+
+  /**
+   * Get minimum relevance threshold for role type
+   * @param {string} roleType - Role type
+   * @returns {number} Minimum relevance threshold
+   */
+  getMinRelevanceThreshold(roleType) {
+    const thresholds = {
+      technical_ic: 50,
+      tech_lead: 55,
+      eng_manager: 60,
+      exec_leader: 65,
+    };
+    return thresholds[roleType] || 50;
+  }
+
+  /**
+   * Get maximum number of insights for role type
+   * @param {string} roleType - Role type
+   * @returns {number} Maximum insights to display
+   */
+  getMaxInsights(roleType) {
+    const maxInsights = {
+      technical_ic: 5,
+      tech_lead: 5,
+      eng_manager: 6,
+      exec_leader: 6,
+    };
+    return maxInsights[roleType] || 5;
+  }
+
+  /**
    * Normalize insight text for comparison
    * @param {string} insight - Insight text
    * @returns {string} Normalized text
    */
   normalizeInsight(insight) {
-    return insight
+    // Handle both string and object formats
+    const text = typeof insight === 'string' ? insight : insight.text || insight;
+    return text
       .toLowerCase()
       .replace(/[^\w\s]/g, '')
       .split(' ')

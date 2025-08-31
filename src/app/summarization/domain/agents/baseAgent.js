@@ -58,14 +58,41 @@ Provide your assessment in the following JSON format:
 {
   "assessment": "Your detailed assessment (2-3 paragraphs)",
   "score": 0.0-1.0,
-  "highlights": ["Key strength 1", "Key strength 2", "..."],
-  "concerns": ["Concern 1", "Concern 2", "..."],
+  "highlights": [
+    {
+      "text": "Key strength or positive observation",
+      "relevance": 0-100,
+      "reasoning": "Why this is relevant for the specific role"
+    }
+  ],
+  "concerns": [
+    {
+      "text": "Concern or area for improvement",
+      "relevance": 0-100,
+      "reasoning": "Why this matters for the specific role"
+    }
+  ],
   "recommendations": {
     "for_recruiter": ["Action item for recruiter", "Another action for recruiter", "..."],
     "for_candidate": ["Improvement area for candidate", "Skill to develop", "..."],
     "interview_focus": ["Topic to explore in interview", "Question area to probe", "..."]
   }
 }
+
+RELEVANCE SCORING INSTRUCTIONS:
+For each highlight and concern, provide a relevance score (0-100) based on the specific job requirements:
+- 90-100: Critical for role success (e.g., React expertise for React Developer role)
+- 70-89: Important but not critical (e.g., AWS knowledge for Full Stack role)
+- 50-69: Relevant but secondary (e.g., Docker for Frontend Developer)
+- 30-49: Minor relevance (e.g., design skills for Backend Developer)
+- 0-29: Minimal relevance (e.g., public speaking for Junior Developer)
+
+Consider the job context from positionAppliedFor:
+- Job title and seniority level
+- Role type (technical_ic, tech_lead, eng_manager, exec_leader)
+- Domain focus (frontend, backend, fullstack, etc.)
+- Soft skills importance (0.0-1.0 scale)
+- Specific keywords and requirements
 
 IMPORTANT: Structure your recommendations into three categories:
 - for_recruiter: Actionable items for the recruiting team (e.g., "Fast-track to final round", "Verify technical skills with coding test")
@@ -92,6 +119,27 @@ IMPORTANT: Structure your recommendations into three categories:
     }
 
     if (!Array.isArray(response.highlights) || !Array.isArray(response.concerns)) {
+      return false;
+    }
+
+    // Validate new insight structure with relevance scores
+    const validateInsights = (insights) => {
+      return insights.every((insight) => {
+        // Handle both old (string) and new (object) formats for backwards compatibility
+        if (typeof insight === 'string') {
+          return true; // Accept old format
+        }
+        return (
+          insight.text &&
+          typeof insight.relevance === 'number' &&
+          insight.relevance >= 0 &&
+          insight.relevance <= 100 &&
+          insight.reasoning
+        );
+      });
+    };
+
+    if (!validateInsights(response.highlights) || !validateInsights(response.concerns)) {
       return false;
     }
 

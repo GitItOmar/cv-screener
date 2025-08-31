@@ -10,34 +10,66 @@ import {
 } from '@/app/review/utils/jobContextUtils';
 
 /**
- * Extracts key highlights from candidate data
+ * Extracts key highlights from candidate data with relevance filtering
  * @param {Object} candidate - Candidate data object
  * @returns {Array} Array of highlight objects
  */
 function extractKeyHighlights(candidate) {
   const highlights = [];
 
-  // Extract from summarization if available
-  if (candidate.summarization?.summary?.key_strengths) {
-    candidate.summarization.summary.key_strengths.slice(0, 3).forEach((strength) => {
-      highlights.push({
-        type: 'strength',
-        text: strength,
-        icon: TrendingUp,
+  // Use relevance-filtered insights from consensus if available
+  if (candidate.summarization?.summary) {
+    const summary = candidate.summarization.summary;
+
+    // Use mixed insights sorted by relevance if available
+    if (summary.mixed_insights && summary.mixed_insights.length > 0) {
+      summary.mixed_insights.forEach((insightText) => {
+        // Determine type based on whether it appears in strengths or concerns
+        const isStrength = summary.key_strengths?.includes(insightText);
+        const isConcern = summary.key_concerns?.includes(insightText);
+
+        let type = 'neutral';
+        let icon = Award;
+
+        if (isStrength) {
+          type = 'strength';
+          icon = TrendingUp;
+        } else if (isConcern) {
+          type = 'concern';
+          icon = AlertCircle;
+        }
+
+        highlights.push({
+          type,
+          text: insightText,
+          icon,
+        });
       });
-    });
+    } else {
+      // Fallback to separate strengths and concerns
+      if (summary.key_strengths) {
+        summary.key_strengths.forEach((strength) => {
+          highlights.push({
+            type: 'strength',
+            text: strength,
+            icon: TrendingUp,
+          });
+        });
+      }
+
+      if (summary.key_concerns) {
+        summary.key_concerns.forEach((concern) => {
+          highlights.push({
+            type: 'concern',
+            text: concern,
+            icon: AlertCircle,
+          });
+        });
+      }
+    }
   }
 
-  // Add top concern if exists
-  if (candidate.summarization?.summary?.key_concerns?.[0]) {
-    highlights.push({
-      type: 'concern',
-      text: candidate.summarization.summary.key_concerns[0],
-      icon: AlertCircle,
-    });
-  }
-
-  // Add top skill if no summarization
+  // Fallback to skills if no summarization (backwards compatibility)
   if (highlights.length === 0 && candidate.extractedData?.skillsAndSpecialties?.technical) {
     const topSkills = candidate.extractedData.skillsAndSpecialties.technical.slice(0, 3);
     topSkills.forEach((skill) => {
@@ -49,7 +81,27 @@ function extractKeyHighlights(candidate) {
     });
   }
 
-  return highlights.slice(0, 5); // Max 5 highlights
+  // Dynamic display: 2-6 insights based on relevance
+  const minInsights = 2;
+  const maxInsights = 6;
+
+  // Ensure at least minInsights, but no more than maxInsights
+  if (highlights.length < minInsights && candidate.extractedData?.skillsAndSpecialties?.technical) {
+    // Pad with additional skills if needed
+    const additionalSkills = candidate.extractedData.skillsAndSpecialties.technical
+      .slice(highlights.length)
+      .slice(0, minInsights - highlights.length);
+
+    additionalSkills.forEach((skill) => {
+      highlights.push({
+        type: 'skill',
+        text: `Proficient in ${skill}`,
+        icon: Award,
+      });
+    });
+  }
+
+  return highlights.slice(0, maxInsights);
 }
 
 /**

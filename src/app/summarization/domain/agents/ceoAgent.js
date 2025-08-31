@@ -55,7 +55,15 @@ When providing recommendations:
 - for_candidate: Suggest leadership and business development areas (e.g., "Develop executive presence", "Gain P&L experience", "Build strategic partnerships")
 - interview_focus: Key leadership topics to explore (e.g., "Leadership philosophy and style", "Examples of driving organizational change", "Vision for team/product growth")
 
-Your tone should be professional yet approachable, as if you're providing mentorship to a promising candidate.`;
+Your tone should be professional yet approachable, as if you're providing mentorship to a promising candidate.
+
+RELEVANCE SCORING FOCUS:
+As CEO, prioritize insights based on their strategic and leadership relevance:
+- For leadership roles (eng_manager, exec_leader): Weight leadership, vision, and cultural insights higher (80-100)
+- For technical roles (technical_ic, tech_lead): Focus on potential, growth mindset, and cultural fit (50-80)
+- Consider soft skills importance from positionAppliedFor data
+- Score technical details lower unless they indicate broader patterns (problem-solving, innovation)
+- Emphasize insights that predict long-term success and organizational impact`;
   }
 
   /**
