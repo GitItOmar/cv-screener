@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import CandidateCard from './components/CandidateCard';
 import CandidateCardSkeleton from './components/CandidateCardSkeleton';
+import SwipeContainer from './components/SwipeContainer';
 
 export default function ReviewPage() {
   const [candidates, setCandidates] = useState([]);
@@ -60,6 +61,34 @@ export default function ReviewPage() {
 
   // Current candidate
   const currentCandidate = candidates[currentIndex];
+
+  // Swipe gesture handlers
+  const handleSwipeLeft = () => {
+    // Reject candidate (move to next)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(
+        'Rejected candidate:',
+        currentCandidate?.extractedData?.basicInformation?.fullName,
+      );
+    }
+    goToNext();
+  };
+
+  const handleSwipeRight = () => {
+    // Accept candidate (move to next)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(
+        'Accepted candidate:',
+        currentCandidate?.extractedData?.basicInformation?.fullName,
+      );
+    }
+    goToNext();
+  };
+
+  const handleSwipeUp = () => {
+    // Show details
+    setShowDetails(true);
+  };
 
   // Loading state
   if (loading) {
@@ -120,11 +149,20 @@ export default function ReviewPage() {
         <div className='max-w-4xl mx-auto'>
           {/* Card Display */}
           <div className='mb-8'>
-            <CandidateCard
-              candidate={currentCandidate}
-              index={currentIndex}
-              total={candidates.length}
-            />
+            <SwipeContainer
+              onSwipeLeft={handleSwipeLeft}
+              onSwipeRight={handleSwipeRight}
+              onSwipeUp={handleSwipeUp}
+              disabled={candidates.length <= 1}
+              threshold={50}
+              className='h-auto'
+            >
+              <CandidateCard
+                candidate={currentCandidate}
+                index={currentIndex}
+                total={candidates.length}
+              />
+            </SwipeContainer>
           </div>
 
           {/* Action Buttons */}
