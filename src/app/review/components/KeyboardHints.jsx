@@ -98,9 +98,15 @@ export default function KeyboardHints({ show = true, canUndo = false, isPaused =
             <div className='border-t border-gray-200 pt-2 mt-2' />
             <div className='flex items-center justify-between'>
               <span className={`text-gray-600 ${!canUndo ? 'opacity-50' : ''}`}>Undo</span>
-              <Badge variant='outline' className={`text-xs ${!canUndo ? 'opacity-50' : ''}`}>
-                U
-              </Badge>
+              <div className='flex items-center space-x-1'>
+                <Badge variant='outline' className={`text-xs ${!canUndo ? 'opacity-50' : ''}`}>
+                  U
+                </Badge>
+                <span className={`text-xs text-gray-400 ${!canUndo ? 'opacity-50' : ''}`}>or</span>
+                <Badge variant='outline' className={`text-xs ${!canUndo ? 'opacity-50' : ''}`}>
+                  ⌘Z
+                </Badge>
+              </div>
             </div>
             <div className='flex items-center justify-between'>
               <span className='text-gray-600'>{isPaused ? 'Resume' : 'Pause'}</span>

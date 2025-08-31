@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, Undo2 } from 'lucide-react';
 import CandidateCard from './components/CandidateCard';
 import CandidateCardSkeleton from './components/CandidateCardSkeleton';
 import SwipeContainer from './components/SwipeContainer';
 import KeyboardHints from './components/KeyboardHints';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import toast from 'react-hot-toast';
 
 export default function ReviewPage() {
   const [candidates, setCandidates] = useState([]);
@@ -17,6 +18,21 @@ export default function ReviewPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [decisionHistory, setDecisionHistory] = useState([]);
+  const [showBulkUndo, setShowBulkUndo] = useState(false);
+
+  // Close bulk undo dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showBulkUndo && !event.target.closest('.bulk-undo-container')) {
+        setShowBulkUndo(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showBulkUndo]);
 
   // Initialize candidates from sessionStorage
   useEffect(() => {
@@ -66,20 +82,29 @@ export default function ReviewPage() {
   // Current candidate
   const currentCandidate = candidates[currentIndex];
 
-  // Decision tracking
-  const recordDecision = (decision, candidateIndex) => {
+  // Enhanced decision tracking with full metadata
+  const recordDecision = (decision, candidateIndex, method = 'unknown') => {
+    const candidate = candidates[candidateIndex];
     const newDecision = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       decision,
       candidateIndex,
-      candidateId: candidates[candidateIndex]?.id || candidateIndex,
+      candidateId: candidate?.id || candidateIndex,
+      candidateName: candidate?.extractedData?.basicInformation?.fullName || 'Unknown',
+      previousIndex: currentIndex,
       timestamp: Date.now(),
+      method, // 'swipe', 'keyboard', 'button'
+      metadata: {
+        score: candidate?.evaluation?.overall?.finalPercentage || 0,
+        recommendation: candidate?.summarization?.summary?.overall_recommendation,
+      },
     };
     setDecisionHistory((prev) => [...prev.slice(-49), newDecision]); // Keep last 50
   };
 
   // Enhanced navigation with decision tracking
-  const handleAccept = () => {
-    recordDecision('accept', currentIndex);
+  const handleAccept = (method = 'button') => {
+    recordDecision('accept', currentIndex, method);
     if (process.env.NODE_ENV === 'development') {
       console.log(
         'Accepted candidate:',
@@ -89,8 +114,8 @@ export default function ReviewPage() {
     goToNext();
   };
 
-  const handleReject = () => {
-    recordDecision('reject', currentIndex);
+  const handleReject = (method = 'button') => {
+    recordDecision('reject', currentIndex, method);
     if (process.env.NODE_ENV === 'development') {
       console.log(
         'Rejected candidate:',
@@ -103,13 +128,13 @@ export default function ReviewPage() {
   // Swipe gesture handlers
   const handleSwipeLeft = () => {
     if (!isPaused) {
-      handleReject();
+      handleReject('swipe');
     }
   };
 
   const handleSwipeRight = () => {
     if (!isPaused) {
-      handleAccept();
+      handleAccept('swipe');
     }
   };
 
@@ -118,22 +143,62 @@ export default function ReviewPage() {
     setShowDetails(true);
   };
 
-  // Undo functionality
+  // Enhanced undo functionality with toast notification
   const handleUndo = () => {
-    if (decisionHistory.length === 0) return;
+    if (decisionHistory.length === 0) {
+      toast.error('No actions to undo');
+      return;
+    }
 
     const lastDecision = decisionHistory[decisionHistory.length - 1];
     setDecisionHistory((prev) => prev.slice(0, -1));
     setCurrentIndex(lastDecision.candidateIndex);
+
+    // Show toast notification with action details
+    const actionText =
+      lastDecision.decision.charAt(0).toUpperCase() + lastDecision.decision.slice(1);
+    toast.success(`Undid ${actionText} for ${lastDecision.candidateName}`, {
+      duration: 3000,
+      icon: '↶',
+      style: {
+        background: '#10b981',
+        color: 'white',
+      },
+    });
 
     if (process.env.NODE_ENV === 'development') {
       console.log('Undid decision:', lastDecision);
     }
   };
 
+  // Bulk undo functionality
+  const handleBulkUndo = (count = 1) => {
+    if (decisionHistory.length === 0) {
+      toast.error('No actions to undo');
+      return;
+    }
+
+    const undoCount = Math.min(count, decisionHistory.length);
+    const undoDecisions = decisionHistory.slice(-undoCount);
+    const firstDecision = undoDecisions[0];
+
+    setDecisionHistory((prev) => prev.slice(0, -undoCount));
+    setCurrentIndex(firstDecision.candidateIndex);
+
+    // Show bulk undo notification
+    toast.success(`Undid last ${undoCount} action${undoCount > 1 ? 's' : ''}`, {
+      duration: 4000,
+      icon: '↶',
+      style: {
+        background: '#10b981',
+        color: 'white',
+      },
+    });
+  };
+
   // Skip functionality
-  const handleSkip = () => {
-    recordDecision('skip', currentIndex);
+  const handleSkip = (method = 'keyboard') => {
+    recordDecision('skip', currentIndex, method);
     goToNext();
   };
 
@@ -144,10 +209,10 @@ export default function ReviewPage() {
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
-    onAccept: () => !isPaused && handleAccept(),
-    onReject: () => !isPaused && handleReject(),
+    onAccept: (method) => !isPaused && handleAccept(method),
+    onReject: (method) => !isPaused && handleReject(method),
     onDetails: () => setShowDetails(!showDetails),
-    onSkip: () => !isPaused && handleSkip(),
+    onSkip: (method) => !isPaused && handleSkip(method),
     onUndo: handleUndo,
     onPause: handlePauseResume,
     enabled: !loading && candidates.length > 0,
@@ -242,6 +307,95 @@ export default function ReviewPage() {
               Previous
             </Button>
 
+            {/* Prominent Undo Button with Bulk Options */}
+            <div className='relative bulk-undo-container'>
+              <div className='flex'>
+                <Button
+                  variant='secondary'
+                  size='lg'
+                  onClick={handleUndo}
+                  disabled={decisionHistory.length === 0}
+                  className={`rounded-r-none w-28 transition-all ${
+                    decisionHistory.length > 0
+                      ? 'bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-300'
+                      : ''
+                  }`}
+                >
+                  <Undo2 className='mr-2 h-4 w-4' />
+                  Undo
+                </Button>
+                <Button
+                  variant='secondary'
+                  size='lg'
+                  onClick={() => setShowBulkUndo(!showBulkUndo)}
+                  disabled={decisionHistory.length === 0}
+                  className={`rounded-l-none w-4 border-l-0 transition-all ${
+                    decisionHistory.length > 0
+                      ? 'bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-300'
+                      : ''
+                  }`}
+                >
+                  ▼
+                </Button>
+              </div>
+
+              {/* Bulk Undo Dropdown */}
+              {showBulkUndo && decisionHistory.length > 0 && (
+                <div className='absolute top-full mt-1 left-0 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-48'>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      handleBulkUndo(3);
+                      setShowBulkUndo(false);
+                    }}
+                    disabled={decisionHistory.length < 3}
+                    className='w-full text-left px-3 py-2 text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+                  >
+                    Undo last 3 actions
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      handleBulkUndo(5);
+                      setShowBulkUndo(false);
+                    }}
+                    disabled={decisionHistory.length < 5}
+                    className='w-full text-left px-3 py-2 text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+                  >
+                    Undo last 5 actions
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      handleBulkUndo(10);
+                      setShowBulkUndo(false);
+                    }}
+                    disabled={decisionHistory.length < 10}
+                    className='w-full text-left px-3 py-2 text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+                  >
+                    Undo last 10 actions
+                  </button>
+                  <div className='border-t border-gray-200 my-1' />
+                  <button
+                    type='button'
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `Are you sure you want to undo all ${decisionHistory.length} actions?`,
+                        )
+                      ) {
+                        handleBulkUndo(decisionHistory.length);
+                        setShowBulkUndo(false);
+                      }
+                    }}
+                    className='w-full text-left px-3 py-2 text-sm hover:bg-gray-100 text-red-600'
+                  >
+                    Undo all {decisionHistory.length} actions
+                  </button>
+                </div>
+              )}
+            </div>
+
             <Button variant='default' size='lg' onClick={toggleDetails} className='w-32'>
               <Eye className='mr-2 h-4 w-4' />
               Details
@@ -267,8 +421,27 @@ export default function ReviewPage() {
               </div>
             )}
             {decisionHistory.length > 0 && (
-              <div className='text-blue-600'>Press U to undo last action</div>
+              <div className='text-blue-600 space-x-4'>
+                <span>Press U or Cmd+Z to undo last action</span>
+                <span className='text-xs'>({decisionHistory.length} actions in history)</span>
+              </div>
             )}
+
+            {/* Decision Summary */}
+            {decisionHistory.length > 0 && (
+              <div className='flex justify-center space-x-4 text-xs'>
+                <span className='text-green-600'>
+                  Accepted: {decisionHistory.filter((d) => d.decision === 'accept').length}
+                </span>
+                <span className='text-red-600'>
+                  Rejected: {decisionHistory.filter((d) => d.decision === 'reject').length}
+                </span>
+                <span className='text-yellow-600'>
+                  Skipped: {decisionHistory.filter((d) => d.decision === 'skip').length}
+                </span>
+              </div>
+            )}
+
             <p>Use arrow keys: ← Reject • → Accept • ↑ Details • ↓ Skip</p>
           </div>
 

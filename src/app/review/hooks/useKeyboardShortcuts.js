@@ -47,11 +47,11 @@ export function useKeyboardShortcuts({
       switch (event.key) {
         case 'ArrowLeft':
           event.preventDefault();
-          onReject();
+          onReject('keyboard');
           break;
         case 'ArrowRight':
           event.preventDefault();
-          onAccept();
+          onAccept('keyboard');
           break;
         case 'ArrowUp':
           event.preventDefault();
@@ -59,12 +59,20 @@ export function useKeyboardShortcuts({
           break;
         case 'ArrowDown':
           event.preventDefault();
-          onSkip();
+          onSkip('keyboard');
           break;
         case 'u':
         case 'U':
           event.preventDefault();
           onUndo();
+          break;
+        case 'z':
+        case 'Z':
+          // Cmd/Ctrl+Z for undo
+          if (event.metaKey || event.ctrlKey) {
+            event.preventDefault();
+            onUndo();
+          }
           break;
         case ' ':
           event.preventDefault();

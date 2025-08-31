@@ -1,6 +1,6 @@
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
-import { ToastProvider } from '@/components/ui/toast-provider';
+import { Toaster } from 'react-hot-toast';
 import './globals.css';
 
 export const metadata = {
@@ -23,7 +23,30 @@ html {
         `}</style>
       </head>
       <body>
-        <ToastProvider>{children}</ToastProvider>
+        {children}
+        <Toaster
+          position='top-right'
+          toastOptions={{
+            duration: 5000,
+            style: {
+              borderRadius: '8px',
+              background: '#363636',
+              color: '#fff',
+            },
+            success: {
+              iconTheme: {
+                primary: '#4ade80',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
       </body>
     </html>
   );

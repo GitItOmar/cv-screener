@@ -16,7 +16,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { useToast } from '@/hooks/use-toast';
+import toast from 'react-hot-toast';
 import {
   Upload,
   FileText,
@@ -49,7 +49,6 @@ export default function UploadPage() {
 
   // Refs and hooks
   const fileInputRef = useRef(null);
-  const { toast } = useToast();
 
   // Helper functions
   const formatFileSize = (bytes) => {
@@ -126,11 +125,7 @@ export default function UploadPage() {
         .map((f) => `${f.name}: ${f.reason}`)
         .join(', ');
 
-      toast({
-        title: 'Some files were rejected',
-        description: message + (rejectedFiles.length > 3 ? '...' : ''),
-        variant: 'destructive',
-      });
+      toast.error(`Some files were rejected: ${message + (rejectedFiles.length > 3 ? '...' : '')}`);
     }
   };
 
@@ -166,10 +161,7 @@ export default function UploadPage() {
     const file = files.find((f) => f.id === fileId);
     if (file) {
       setFiles((prev) => prev.filter((f) => f.id !== fileId));
-      toast({
-        title: 'File removed',
-        description: file.name,
-      });
+      toast.success(`File removed: ${file.name}`);
     }
   };
 
