@@ -77,26 +77,15 @@ This project includes:
 
 ```
 src/
-├── app/                    # Next.js App Router
-│   ├── api/               # API routes
-│   ├── upload/            # CV upload pages
-│   └── review/            # Candidate review interface
-├── components/ui/         # Reusable UI components
-├── lib/                   # Utilities and services
-│   ├── agents/           # AI processing agents
-│   ├── extractors/       # Text extraction utilities
-│   └── parsers/          # File parsing utilities
-└── hooks/                # Custom React hooks
+├── app/                    # Next.js App Router with modular architecture
+│   ├── api/               # Centralized API routes
+│   ├── (modules)/         # Feature modules (extraction, evaluation, review, etc.)
+│   │   ├── domain/       # Business logic layer
+│   │   └── public/       # Public API surface
+├── components/ui/         # Reusable shadcn/ui components
+├── hooks/                # Global custom React hooks
+└── lib/                   # Shared packages/utilities
 ```
-
-## Usage
-
-1. **Upload CVs**: Navigate to the upload page and drag & drop CV files
-2. **AI Processing**: CVs are automatically processed and structured data is extracted
-3. **Review Candidates**: Use the review interface to evaluate candidates with keyboard shortcuts:
-   - `←` or `→` - Reject/Accept candidate
-   - `U` - Undo last action
-   - `S` - Skip candidate
 
 ## Configuration
 
