@@ -267,14 +267,35 @@ Provide score and reasoning.${isEntryLevel ? '' : ` Return 0 if no ${mandatoryEx
    */
   static buildBasicInfoPrompt(basicInformation, jobRequirements, maxScore = 1) {
     const roleTitle = jobRequirements?.positionAppliedFor?.title || 'the position';
+    const isRemote = jobRequirements?.location?.isRemote || false;
     const preferredLocations = jobRequirements?.location?.preferred?.join(', ') || 'Any location';
 
-    // Scale point allocations based on maxScore
-    const contactPoints = (0.6 * maxScore).toFixed(2);
-    const phonePoints = (0.1 * maxScore).toFixed(2);
-    const locationPoints = (0.4 * maxScore).toFixed(2);
+    let systemPrompt;
 
-    const systemPrompt = `You are evaluating basic information for ${roleTitle}.
+    if (isRemote) {
+      // Remote position: 100% weight on contact completeness, no location evaluation
+      const contactPoints = maxScore.toFixed(2);
+      const phonePoints = (0.1 * maxScore).toFixed(2);
+
+      systemPrompt = `You are evaluating basic information for ${roleTitle}.
+
+This is a REMOTE position - location is not a factor in evaluation.
+
+Score 0-${maxScore} points considering ONLY:
+- Contact completeness (name, email, phone; phone is weighted at ${phonePoints} points) (${contactPoints} points total)
+
+Return JSON format:
+{
+  "score": 0.X,
+  "reasoning": "detailed explanation"
+}`;
+    } else {
+      // Non-remote: standard 60/40 split between contact and location
+      const contactPoints = (0.6 * maxScore).toFixed(2);
+      const phonePoints = (0.1 * maxScore).toFixed(2);
+      const locationPoints = (0.4 * maxScore).toFixed(2);
+
+      systemPrompt = `You are evaluating basic information for ${roleTitle}.
 
 Requirements:
 - Preferred locations: ${preferredLocations}
@@ -288,6 +309,7 @@ Return JSON format:
   "score": 0.X,
   "reasoning": "detailed explanation"
 }`;
+    }
 
     const userData = `Evaluate this basic information:
 ${JSON.stringify(basicInformation, null, 2)}

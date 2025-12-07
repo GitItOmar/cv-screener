@@ -26,6 +26,7 @@ export default function SettingsPage() {
   const [requiredKeywords, setRequiredKeywords] = useState('');
   const [preferredKeywords, setPreferredKeywords] = useState('');
   const [preferredLocations, setPreferredLocations] = useState('');
+  const [isRemote, setIsRemote] = useState(false);
   // New structure: array of {language: string, level: string}
   const [languageRequirements, setLanguageRequirements] = useState([]);
   const [educationFields, setEducationFields] = useState('');
@@ -38,10 +39,11 @@ export default function SettingsPage() {
     if (settings) {
       setJobDescription(settings.jobDescription || '');
       setJobTitle(settings.jobTitle || '');
-      setYearsExperience(settings.yearsExperience || 1);
+      setYearsExperience(settings.yearsExperience || 0);
       setRequiredKeywords(jobSettingsStorage.formatKeywords(settings.requiredKeywords || []));
       setPreferredKeywords(jobSettingsStorage.formatKeywords(settings.preferredKeywords || []));
       setPreferredLocations(jobSettingsStorage.formatKeywords(settings.preferredLocations || []));
+      setIsRemote(settings.isRemote || false);
       // Load language requirements (new structure)
       setLanguageRequirements(settings.languageRequirements || []);
       setEducationFields(jobSettingsStorage.formatKeywords(settings.educationFields || []));
@@ -58,11 +60,12 @@ export default function SettingsPage() {
     const hasChanges =
       jobDescription !== (settings?.jobDescription || '') ||
       jobTitle !== (settings?.jobTitle || '') ||
-      yearsExperience !== (settings?.yearsExperience || 1) ||
+      yearsExperience !== (settings?.yearsExperience || 0) ||
       requiredKeywords !== jobSettingsStorage.formatKeywords(settings?.requiredKeywords || []) ||
       preferredKeywords !== jobSettingsStorage.formatKeywords(settings?.preferredKeywords || []) ||
       preferredLocations !==
         jobSettingsStorage.formatKeywords(settings?.preferredLocations || []) ||
+      isRemote !== (settings?.isRemote || false) ||
       langReqsChanged ||
       educationFields !== jobSettingsStorage.formatKeywords(settings?.educationFields || []);
 
@@ -74,6 +77,7 @@ export default function SettingsPage() {
     requiredKeywords,
     preferredKeywords,
     preferredLocations,
+    isRemote,
     languageRequirements,
     educationFields,
   ]);
@@ -85,7 +89,8 @@ export default function SettingsPage() {
       yearsExperience,
       requiredKeywords: jobSettingsStorage.parseKeywords(requiredKeywords),
       preferredKeywords: jobSettingsStorage.parseKeywords(preferredKeywords),
-      preferredLocations: jobSettingsStorage.parseKeywords(preferredLocations),
+      preferredLocations: isRemote ? [] : jobSettingsStorage.parseKeywords(preferredLocations),
+      isRemote,
       languageRequirements: languageRequirements.filter((lr) => lr.language.trim()),
       educationFields: jobSettingsStorage.parseKeywords(educationFields),
     };
@@ -108,10 +113,11 @@ export default function SettingsPage() {
       if (success) {
         setJobDescription('');
         setJobTitle('');
-        setYearsExperience(1);
+        setYearsExperience(0);
         setRequiredKeywords('');
         setPreferredKeywords('');
         setPreferredLocations('');
+        setIsRemote(false);
         setLanguageRequirements([]);
         setEducationFields('');
         setLastSaved(null);
@@ -343,8 +349,25 @@ Paste your job description here in markdown format...
 
                 <Separator />
 
-                {/* Location & Language */}
-                <div>
+                {/* Remote Work Toggle */}
+                <div className='flex items-center space-x-3'>
+                  <input
+                    type='checkbox'
+                    id='isRemote'
+                    checked={isRemote}
+                    onChange={(e) => setIsRemote(e.target.checked)}
+                    className='w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2'
+                  />
+                  <label htmlFor='isRemote' className='text-sm font-medium text-gray-900'>
+                    Remote Work Position
+                  </label>
+                  <span className='text-xs text-gray-500'>
+                    (Location will not be considered in evaluation)
+                  </span>
+                </div>
+
+                {/* Location - Disabled when remote */}
+                <div className={isRemote ? 'opacity-50' : ''}>
                   <label className='block text-sm font-medium text-gray-900 mb-2'>
                     Preferred Locations
                   </label>
@@ -352,11 +375,18 @@ Paste your job description here in markdown format...
                     type='text'
                     value={preferredLocations}
                     onChange={(e) => setPreferredLocations(e.target.value)}
-                    className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                    placeholder='e.g., Remote, USA, Europe, Germany'
+                    disabled={isRemote}
+                    className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed'
+                    placeholder={
+                      isRemote
+                        ? 'Not applicable for remote positions'
+                        : 'e.g., USA, Europe, Germany'
+                    }
                   />
                   <p className='text-xs text-gray-500 mt-2'>
-                    Comma-separated list of preferred candidate locations
+                    {isRemote
+                      ? 'Location is disabled for remote positions'
+                      : 'Comma-separated list of preferred candidate locations'}
                   </p>
                 </div>
 

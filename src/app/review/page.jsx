@@ -516,6 +516,96 @@ export default function ReviewPage() {
                   </div>
                 </div>
 
+                {/* Evaluation Reasoning */}
+                {currentCandidate.evaluation?.categories && (
+                  <div>
+                    <h3 className='font-semibold text-lg mb-2'>Evaluation Reasoning</h3>
+                    <div className='space-y-3'>
+                      {currentCandidate.evaluation.categories.selfEvaluation && (
+                        <div className='p-3 bg-gray-50 dark:bg-gray-700 rounded'>
+                          <div className='flex justify-between items-center mb-1'>
+                            <p className='font-medium text-sm'>Self-Evaluation</p>
+                            <span className='text-sm font-medium'>
+                              {currentCandidate.evaluation.categories.selfEvaluation.percentage}%
+                            </span>
+                          </div>
+                          <p className='text-sm text-gray-600 dark:text-gray-300'>
+                            {currentCandidate.evaluation.categories.selfEvaluation.reasoning}
+                          </p>
+                        </div>
+                      )}
+                      {currentCandidate.evaluation.categories.skillsSpecialties && (
+                        <div className='p-3 bg-gray-50 dark:bg-gray-700 rounded'>
+                          <div className='flex justify-between items-center mb-1'>
+                            <p className='font-medium text-sm'>Skills & Specialties</p>
+                            <span className='text-sm font-medium'>
+                              {currentCandidate.evaluation.categories.skillsSpecialties.percentage}%
+                            </span>
+                          </div>
+                          <p className='text-sm text-gray-600 dark:text-gray-300'>
+                            {currentCandidate.evaluation.categories.skillsSpecialties.reasoning}
+                          </p>
+                        </div>
+                      )}
+                      {currentCandidate.evaluation.categories.workExperience && (
+                        <div className='p-3 bg-gray-50 dark:bg-gray-700 rounded'>
+                          <div className='flex justify-between items-center mb-1'>
+                            <p className='font-medium text-sm'>Work Experience</p>
+                            <span className='text-sm font-medium'>
+                              {currentCandidate.evaluation.categories.workExperience.percentage}%
+                            </span>
+                          </div>
+                          <p className='text-sm text-gray-600 dark:text-gray-300'>
+                            {currentCandidate.evaluation.categories.workExperience.reasoning}
+                          </p>
+                        </div>
+                      )}
+                      {currentCandidate.evaluation.categories.basicInformation && (
+                        <div className='p-3 bg-gray-50 dark:bg-gray-700 rounded'>
+                          <div className='flex justify-between items-center mb-1'>
+                            <p className='font-medium text-sm'>Basic Information</p>
+                            <span className='text-sm font-medium'>
+                              {currentCandidate.evaluation.categories.basicInformation.percentage}%
+                            </span>
+                          </div>
+                          <p className='text-sm text-gray-600 dark:text-gray-300'>
+                            {currentCandidate.evaluation.categories.basicInformation.reasoning}
+                          </p>
+                        </div>
+                      )}
+                      {currentCandidate.evaluation.categories.educationBackground && (
+                        <div className='p-3 bg-gray-50 dark:bg-gray-700 rounded'>
+                          <div className='flex justify-between items-center mb-1'>
+                            <p className='font-medium text-sm'>Education</p>
+                            <span className='text-sm font-medium'>
+                              {
+                                currentCandidate.evaluation.categories.educationBackground
+                                  .percentage
+                              }
+                              %
+                            </span>
+                          </div>
+                          <p className='text-sm text-gray-600 dark:text-gray-300'>
+                            {currentCandidate.evaluation.categories.educationBackground.reasoning}
+                          </p>
+                        </div>
+                      )}
+                      {currentCandidate.evaluation.overall?.penalties?.length > 0 && (
+                        <div className='p-3 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800'>
+                          <p className='font-medium text-sm text-red-700 dark:text-red-400 mb-1'>
+                            Penalties Applied
+                          </p>
+                          <ul className='list-disc list-inside text-sm text-red-600 dark:text-red-300'>
+                            {currentCandidate.evaluation.overall.penalties.map((penalty, idx) => (
+                              <li key={`penalty-${idx}`}>{penalty}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* AI Analysis */}
                 {currentCandidate.summarization?.summary && (
                   <div>

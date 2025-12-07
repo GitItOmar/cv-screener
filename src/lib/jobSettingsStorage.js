@@ -15,6 +15,7 @@ const defaultSettings = {
   requiredKeywords: [],
   preferredKeywords: [],
   preferredLocations: [],
+  isRemote: false,
   // New structure: array of {language: string, level: string}
   languageRequirements: [],
   educationFields: [],
@@ -160,6 +161,7 @@ export const jobSettingsStorage = {
       location: {
         preferred: settings.preferredLocations || [],
         acceptable: [],
+        isRemote: settings.isRemote || false,
       },
       languages: {
         required: {

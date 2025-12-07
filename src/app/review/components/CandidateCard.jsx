@@ -3,106 +3,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
-import { MapPin, Briefcase, Award, AlertCircle, TrendingUp, Target, Code } from 'lucide-react';
+import { MapPin, Briefcase, Award, Target, Code } from 'lucide-react';
 import {
   getRoleTypeDisplayName,
   getDomainFocusDisplayName,
 } from '@/app/review/utils/jobContextUtils';
-
-/**
- * Extracts key highlights from candidate data with relevance filtering
- * @param {Object} candidate - Candidate data object
- * @returns {Array} Array of highlight objects
- */
-function extractKeyHighlights(candidate) {
-  const highlights = [];
-
-  // Use relevance-filtered insights from consensus if available
-  if (candidate.summarization?.summary) {
-    const summary = candidate.summarization.summary;
-
-    // Use mixed insights sorted by relevance if available
-    if (summary.mixed_insights && summary.mixed_insights.length > 0) {
-      summary.mixed_insights.forEach((insightText) => {
-        // Determine type based on whether it appears in strengths or concerns
-        const isStrength = summary.key_strengths?.includes(insightText);
-        const isConcern = summary.key_concerns?.includes(insightText);
-
-        let type = 'neutral';
-        let icon = Award;
-
-        if (isStrength) {
-          type = 'strength';
-          icon = TrendingUp;
-        } else if (isConcern) {
-          type = 'concern';
-          icon = AlertCircle;
-        }
-
-        highlights.push({
-          type,
-          text: insightText,
-          icon,
-        });
-      });
-    } else {
-      // Fallback to separate strengths and concerns
-      if (summary.key_strengths) {
-        summary.key_strengths.forEach((strength) => {
-          highlights.push({
-            type: 'strength',
-            text: strength,
-            icon: TrendingUp,
-          });
-        });
-      }
-
-      if (summary.key_concerns) {
-        summary.key_concerns.forEach((concern) => {
-          highlights.push({
-            type: 'concern',
-            text: concern,
-            icon: AlertCircle,
-          });
-        });
-      }
-    }
-  }
-
-  // Fallback to skills if no summarization (backwards compatibility)
-  if (highlights.length === 0 && candidate.extractedData?.skillsAndSpecialties?.technical) {
-    const topSkills = candidate.extractedData.skillsAndSpecialties.technical.slice(0, 3);
-    topSkills.forEach((skill) => {
-      highlights.push({
-        type: 'skill',
-        text: `Strong in ${skill}`,
-        icon: Award,
-      });
-    });
-  }
-
-  // Dynamic display: 2-6 insights based on relevance
-  const minInsights = 2;
-  const maxInsights = 6;
-
-  // Ensure at least minInsights, but no more than maxInsights
-  if (highlights.length < minInsights && candidate.extractedData?.skillsAndSpecialties?.technical) {
-    // Pad with additional skills if needed
-    const additionalSkills = candidate.extractedData.skillsAndSpecialties.technical
-      .slice(highlights.length)
-      .slice(0, minInsights - highlights.length);
-
-    additionalSkills.forEach((skill) => {
-      highlights.push({
-        type: 'skill',
-        text: `Proficient in ${skill}`,
-        icon: Award,
-      });
-    });
-  }
-
-  return highlights.slice(0, maxInsights);
-}
 
 /**
  * Calculates years of experience from work history
@@ -185,7 +90,6 @@ export default function CandidateCard({ candidate, index, total }) {
   const overallScore =
     candidate.evaluation?.overall?.finalPercentage ||
     Math.round((candidate.summarization?.summary?.confidence_level || 0) * 100);
-  const highlights = extractKeyHighlights(candidate);
   const recommendationBadge = getRecommendationBadge(candidate);
 
   // Get candidate info
@@ -298,55 +202,6 @@ export default function CandidateCard({ candidate, index, total }) {
             </div>
           )}
         </div>
-
-        {/* Key Highlights */}
-        {highlights.length > 0 && (
-          <div className='space-y-2'>
-            <h3 className='font-semibold text-sm text-gray-700 uppercase tracking-wide'>
-              Key Highlights
-            </h3>
-            <ul className='space-y-2'>
-              {highlights.map((highlight, idx) => {
-                const Icon = highlight.icon;
-                const highlightKey = `${highlight.type}-${idx}`;
-                let colorClass = 'text-gray-700';
-                if (highlight.type === 'concern') colorClass = 'text-orange-700';
-                if (highlight.type === 'strength') colorClass = 'text-green-700';
-
-                return (
-                  <li
-                    key={highlightKey}
-                    className={`flex items-start space-x-2 text-sm ${colorClass}`}
-                  >
-                    <Icon className='h-4 w-4 mt-0.5 flex-shrink-0' />
-                    <span>{highlight.text}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
-
-        {/* Top Skills */}
-        {skills.technical && skills.technical.length > 0 && (
-          <div className='space-y-2'>
-            <h3 className='font-semibold text-sm text-gray-700 uppercase tracking-wide'>
-              Top Skills
-            </h3>
-            <div className='flex flex-wrap gap-2'>
-              {skills.technical.slice(0, 6).map((skill) => (
-                <Badge key={skill} variant='outline' className='text-xs'>
-                  {skill}
-                </Badge>
-              ))}
-              {skills.technical.length > 6 && (
-                <Badge variant='outline' className='text-xs'>
-                  +{skills.technical.length - 6} more
-                </Badge>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* AI Confidence */}
         {candidate.summarization?.summary?.confidence_level && (

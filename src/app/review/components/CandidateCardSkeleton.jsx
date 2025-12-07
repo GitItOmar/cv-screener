@@ -38,16 +38,6 @@ export default function CandidateCardSkeleton() {
           <Skeleton className='h-4 w-36' />
         </div>
 
-        {/* Key Highlights skeleton */}
-        <div className='space-y-2'>
-          <Skeleton className='h-4 w-24' />
-          <div className='space-y-2'>
-            <Skeleton className='h-4 w-full' />
-            <Skeleton className='h-4 w-5/6' />
-            <Skeleton className='h-4 w-4/5' />
-          </div>
-        </div>
-
         {/* Top Skills skeleton */}
         <div className='space-y-2'>
           <Skeleton className='h-4 w-20' />
