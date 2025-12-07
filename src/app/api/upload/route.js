@@ -11,6 +11,7 @@ export async function POST(request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file');
+    const jobSettingsJson = formData.get('jobSettings');
 
     if (!file) {
       return Response.json({ error: 'No file provided' }, { status: 400 });
@@ -20,8 +21,18 @@ export async function POST(request) {
       return Response.json({ error: 'Invalid file format' }, { status: 400 });
     }
 
+    // Parse job settings if provided
+    let jobSettings = null;
+    if (jobSettingsJson) {
+      try {
+        jobSettings = JSON.parse(jobSettingsJson);
+      } catch {
+        // Ignore invalid JSON, use default settings
+      }
+    }
+
     // Handle file upload and extraction through domain layer
-    const result = await handleFileUpload(file);
+    const result = await handleFileUpload(file, { jobSettings });
 
     // Add processing time to response
     const processingTime = Date.now() - startTime;

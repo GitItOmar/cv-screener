@@ -9,7 +9,7 @@ export const jobRequirements = {
     roleType: 'technical_ic',
   },
   experience: {
-    yearsRequired: 1,
+    yearsRequired: 0,
     yearsPreferred: 2,
     mandatoryExperience: 'Shopify',
     relevantRoles: [

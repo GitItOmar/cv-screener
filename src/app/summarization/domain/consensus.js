@@ -8,8 +8,8 @@ class ConsensusMechanism {
   constructor(config = {}) {
     this.config = {
       weights: {
-        ceo: 0.33,
-        cto: 0.34,
+        ceo: 0.34,
+        cto: 0.33,
         hr: 0.33,
       },
       consensusThreshold: 0.6, // Agreement threshold for strong recommendation

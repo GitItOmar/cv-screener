@@ -4,7 +4,7 @@
 
 import { validateFile } from './validator.js';
 import { extractFromFile } from '@/app/extraction/public';
-import { resumeEvaluator, jobRequirements } from '@/app/evaluation/public';
+import { ResumeEvaluator, jobRequirements } from '@/app/evaluation/public';
 import { ResumeSummarizer } from '@/app/summarization/public';
 
 // Initialize summarizer instance (singleton pattern)
@@ -22,10 +22,14 @@ function getSummarizer() {
  * @param {File} file - File to upload
  * @param {Object} options - Processing options
  * @param {boolean} options.enableSummarization - Whether to generate AI feedback
+ * @param {Object} options.jobSettings - Custom job requirements (optional)
  * @returns {Promise<Object>} - Complete processing result
  */
 export async function handleFileUpload(file, options = {}) {
-  const { enableSummarization = true } = options;
+  const { enableSummarization = true, jobSettings = null } = options;
+
+  // Create evaluator with custom settings if provided
+  const evaluator = jobSettings ? new ResumeEvaluator(jobSettings) : new ResumeEvaluator();
   // Validate the file
   const validation = validateFile(file);
   if (!validation.isValid) {
@@ -55,7 +59,7 @@ export async function handleFileUpload(file, options = {}) {
     let rawText = extractionResult.text; // Get the cleaned text from extraction
 
     try {
-      const evaluationResult = await resumeEvaluator.evaluateResume(
+      const evaluationResult = await evaluator.evaluateResume(
         extractionResult.extractedData,
         rawText, // Pass raw text for potential summarization
       );
@@ -83,7 +87,7 @@ export async function handleFileUpload(file, options = {}) {
           structuredData: extractionResult.extractedData,
           rawText,
           evaluationScores: evaluation,
-          jobRequirements,
+          jobRequirements: jobSettings || jobRequirements,
         });
 
         // Store summarization data for the review interface (client-side only)

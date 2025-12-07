@@ -1,12 +1,24 @@
 /**
  * Critical Keyword Detection System
- * Ensures 100% detection rate for critical business keywords
+ * Supports dynamic keywords from job settings or defaults to Shopify-focused detection
  */
 
 class KeywordDetector {
   constructor() {
-    // Critical keywords with their synonyms and variations
-    this.criticalKeywords = {
+    // Initialize with default keywords (Shopify-focused for backwards compatibility)
+    this.criticalKeywords = this.getDefaultKeywords();
+
+    // Detection log for monitoring
+    this.detectionLog = [];
+    this.lastScanResult = null;
+  }
+
+  /**
+   * Get default keywords (Shopify-focused) for backwards compatibility
+   * @returns {Object} Default keyword configuration
+   */
+  getDefaultKeywords() {
+    return {
       shopify: {
         priority: 1,
         variations: [
@@ -63,7 +75,6 @@ class KeywordDetector {
         patterns: [/liquid\s*(?:template|templating|language)?/gi],
         weight: 0.8,
         critical: false,
-        contextRequired: true, // Only count if appears with Shopify context
       },
       migrations: {
         priority: 3,
@@ -80,10 +91,70 @@ class KeywordDetector {
         critical: false,
       },
     };
+  }
 
-    // Detection log for monitoring
-    this.detectionLog = [];
-    this.lastScanResult = null;
+  /**
+   * Set custom keywords from job requirements
+   * @param {string[]} requiredKeywords - Keywords that are required (will be critical)
+   * @param {string[]} preferredKeywords - Keywords that are preferred (will be secondary)
+   */
+  setKeywords(requiredKeywords = [], preferredKeywords = []) {
+    // If no custom keywords provided, use empty object (no keyword detection)
+    if (requiredKeywords.length === 0 && preferredKeywords.length === 0) {
+      this.criticalKeywords = {};
+      return;
+    }
+
+    this.criticalKeywords = {};
+
+    // Required keywords become critical (priority 1)
+    requiredKeywords.forEach((keyword) => {
+      const key = keyword.toLowerCase().trim();
+      if (key) {
+        this.criticalKeywords[key] = {
+          priority: 1,
+          variations: [key],
+          patterns: [new RegExp(`\\b${this.escapeRegex(key)}\\b`, 'gi')],
+          weight: 1.0,
+          critical: true,
+        };
+      }
+    });
+
+    // Preferred keywords become secondary (priority 2)
+    preferredKeywords.forEach((keyword) => {
+      const key = keyword.toLowerCase().trim();
+      if (key && !this.criticalKeywords[key]) {
+        this.criticalKeywords[key] = {
+          priority: 2,
+          variations: [key],
+          patterns: [new RegExp(`\\b${this.escapeRegex(key)}\\b`, 'gi')],
+          weight: 0.5,
+          critical: false,
+        };
+      }
+    });
+  }
+
+  /**
+   * Reset to default keywords
+   */
+  resetToDefaults() {
+    this.criticalKeywords = this.getDefaultKeywords();
+  }
+
+  /**
+   * Check if using custom keywords (not defaults)
+   * @returns {boolean} True if custom keywords are set
+   */
+  hasCustomKeywords() {
+    const defaults = this.getDefaultKeywords();
+    const currentKeys = Object.keys(this.criticalKeywords);
+    const defaultKeys = Object.keys(defaults);
+    return (
+      currentKeys.length !== defaultKeys.length ||
+      !currentKeys.every((key) => defaultKeys.includes(key))
+    );
   }
 
   /**
@@ -175,8 +246,8 @@ class KeywordDetector {
       }
     }
 
-    // Additional validation for Shopify-specific fields
-    if (preScanResult.detectedKeywords.shopify?.found) {
+    // Additional validation for Shopify-specific fields (only for default keywords)
+    if (!this.hasCustomKeywords() && preScanResult.detectedKeywords.shopify?.found) {
       validation.shopifyValidation = this.validateShopifyExtraction(extractedData);
       if (!validation.shopifyValidation.valid) {
         validation.warnings.push(...validation.shopifyValidation.warnings);
@@ -227,25 +298,21 @@ class KeywordDetector {
 
   /**
    * Apply context-based rules for keyword detection
+   * No hardcoded rules - context rules are only for default keywords
    * @private
    */
   applyContextRules(detectedKeywords) {
-    // Liquid should only count if Shopify is also present
-    if (detectedKeywords.liquid?.found && this.criticalKeywords.liquid.contextRequired) {
-      if (!detectedKeywords.shopify?.found) {
-        detectedKeywords.liquid.found = false;
-        detectedKeywords.liquid.confidence *= 0.1;
-        detectedKeywords.liquid.contextNote = 'Liquid found but no Shopify context';
+    // Context rules only apply when using default keywords
+    if (!this.hasCustomKeywords()) {
+      // Boost ecommerce confidence if Shopify is found (default behavior)
+      if (detectedKeywords.shopify?.found && detectedKeywords.ecommerce?.found) {
+        detectedKeywords.ecommerce.confidence = Math.min(
+          1.0,
+          detectedKeywords.ecommerce.confidence * 1.5,
+        );
       }
     }
-
-    // Boost ecommerce confidence if Shopify is found
-    if (detectedKeywords.shopify?.found && detectedKeywords.ecommerce?.found) {
-      detectedKeywords.ecommerce.confidence = Math.min(
-        1.0,
-        detectedKeywords.ecommerce.confidence * 1.5,
-      );
-    }
+    // For custom keywords, no context rules are applied
   }
 
   /**

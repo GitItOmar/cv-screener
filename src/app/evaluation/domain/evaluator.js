@@ -5,8 +5,8 @@ import { ResumeScorer } from './scorer.js';
  * Orchestrates the complete evaluation process for extracted resume data
  */
 class ResumeEvaluator {
-  constructor() {
-    this.scorer = new ResumeScorer();
+  constructor(customJobRequirements = null) {
+    this.scorer = new ResumeScorer(customJobRequirements);
   }
 
   /**
@@ -214,5 +214,5 @@ class ResumeEvaluator {
   }
 }
 
-// Export singleton instance for use across the application
-export const resumeEvaluator = new ResumeEvaluator();
+// Export class for custom instances
+export { ResumeEvaluator };

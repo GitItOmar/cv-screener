@@ -6,10 +6,12 @@ import { keywordDetector } from '@/app/extraction/public';
 /**
  * LLM-based Resume Scoring Module
  * Implements 10-point scoring system with integrated evaluation signals
+ * Supports dynamic keywords from job settings
  */
 export class ResumeScorer {
-  constructor() {
-    this.jobReqs = jobRequirements;
+  constructor(customJobRequirements = null) {
+    // Use custom requirements if provided, otherwise use default
+    this.jobReqs = customJobRequirements || jobRequirements;
 
     // Initialize the unified LLM client with GPT-4o
     this.client = new LLMClient({
@@ -23,13 +25,88 @@ export class ResumeScorer {
     });
 
     this.responseParser = new ResponseParser();
+
+    // Configure keyword detector based on job requirements
+    this.configureKeywordDetector();
+  }
+
+  /**
+   * Configure keyword detector based on job requirements
+   * Uses required/preferred keywords from job settings if available
+   */
+  configureKeywordDetector() {
+    const required = this.jobReqs.skills?.required || [];
+    const preferred = this.jobReqs.skills?.preferred || [];
+
+    keywordDetector.setKeywords(required, preferred);
+  }
+
+  /**
+   * Get required keywords from job requirements
+   * @returns {string[]} Array of required keywords
+   */
+  getRequiredKeywords() {
+    return this.jobReqs.skills?.required || [];
+  }
+
+  /**
+   * Check if any required keyword is found in scan results
+   * @param {Object} keywordScan - Scan results from keywordDetector
+   * @returns {boolean} True if at least one required keyword was found
+   */
+  hasAnyRequiredKeyword(keywordScan) {
+    const required = this.getRequiredKeywords();
+
+    // If no required keywords defined, don't gate
+    if (required.length === 0) {
+      return true;
+    }
+
+    return required.some((keyword) => {
+      const key = keyword.toLowerCase().trim();
+      return keywordScan.detectedKeywords[key]?.found;
+    });
+  }
+
+  /**
+   * Get keyword detection results for required keywords
+   * @param {Object} keywordScan - Scan results from keywordDetector
+   * @returns {Object} Detection results for required keywords
+   */
+  getRequiredKeywordMatches(keywordScan) {
+    const required = this.getRequiredKeywords();
+    const matches = {};
+
+    required.forEach((keyword) => {
+      const key = keyword.toLowerCase().trim();
+      matches[keyword] = keywordScan.detectedKeywords[key] || { found: false, confidence: 0 };
+    });
+
+    return matches;
+  }
+
+  /**
+   * Get keyword detection results for preferred keywords
+   * @param {Object} keywordScan - Scan results from keywordDetector
+   * @returns {Object} Detection results for preferred keywords
+   */
+  getPreferredKeywordMatches(keywordScan) {
+    const preferred = this.jobReqs.skills?.preferred || [];
+    const matches = {};
+
+    preferred.forEach((keyword) => {
+      const key = keyword.toLowerCase().trim();
+      matches[keyword] = keywordScan.detectedKeywords[key] || { found: false, confidence: 0 };
+    });
+
+    return matches;
   }
 
   /**
    * Score self-evaluation section (0-1 scale) with Passion & Communication signals
    */
   async scoreSelfEvaluation(selfEvaluation) {
-    const prompt = EvaluationPrompts.buildSelfEvaluationPrompt(selfEvaluation);
+    const prompt = EvaluationPrompts.buildSelfEvaluationPrompt(selfEvaluation, this.jobReqs);
 
     try {
       const result = await this.evaluateWithLLM(prompt);
@@ -43,7 +120,7 @@ export class ResumeScorer {
    * Score skills and specialties (0-2 scale) with Brains & Selectivity signals
    */
   async scoreSkillsSpecialties(skillsSpecialties, fullResumeData = null) {
-    // Check for Shopify-related keywords in skills
+    // Scan for keywords (uses dynamic keywords from job settings)
     const skillsText = JSON.stringify(skillsSpecialties);
     const keywordScan = keywordDetector.scanText(skillsText);
 
@@ -57,11 +134,10 @@ export class ResumeScorer {
       const result = await this.evaluateWithLLM(prompt);
       const parsedResult = this.parseLLMResponse(result, 2);
 
-      // Add keyword detection info
+      // Add keyword detection info using dynamic keywords
       parsedResult.details.keywordDetection = {
-        shopify: keywordScan.detectedKeywords.shopify,
-        liquid: keywordScan.detectedKeywords.liquid,
-        ecommerce: keywordScan.detectedKeywords.ecommerce,
+        required: this.getRequiredKeywordMatches(keywordScan),
+        preferred: this.getPreferredKeywordMatches(keywordScan),
       };
 
       return parsedResult;
@@ -74,22 +150,27 @@ export class ResumeScorer {
    * Score work experience (0-4 scale) with Hardcore, Communication & Diversity signals
    */
   async scoreWorkExperience(workExperience) {
-    // First, check for Shopify keyword in work experience using keyword detector
+    // Scan for keywords (uses dynamic keywords from job settings)
     const workExpText = JSON.stringify(workExperience);
     const keywordScan = keywordDetector.scanText(workExpText);
 
-    // If Shopify is not detected by keyword scanner, ensure it's reflected in scoring
-    if (!keywordScan.detectedKeywords.shopify?.found) {
-      // Return minimal score immediately if Shopify is missing
+    // Check if any required keyword is found
+    const hasRequired = this.hasAnyRequiredKeyword(keywordScan);
+    const requiredKeywords = this.getRequiredKeywords();
+
+    // Gate on required keywords (only if required keywords are defined)
+    if (!hasRequired && requiredKeywords.length > 0) {
       return {
         score: 0,
         maxScore: 4,
         percentage: 0,
-        reasoning: 'No Shopify experience detected - critical requirement not met',
+        reasoning: `No required experience detected (${requiredKeywords.join(', ')}) - critical requirement not met`,
         signals: {},
         details: {
-          shopify_experience: null,
-          keywordDetection: keywordScan.detectedKeywords.shopify,
+          keywordDetection: {
+            required: this.getRequiredKeywordMatches(keywordScan),
+            preferred: this.getPreferredKeywordMatches(keywordScan),
+          },
         },
       };
     }
@@ -100,8 +181,11 @@ export class ResumeScorer {
       const result = await this.evaluateWithLLM(prompt);
       const parsedResult = this.parseLLMResponse(result, 4);
 
-      // Add keyword detection info to the result
-      parsedResult.details.keywordDetection = keywordScan.detectedKeywords.shopify;
+      // Add keyword detection info using dynamic keywords
+      parsedResult.details.keywordDetection = {
+        required: this.getRequiredKeywordMatches(keywordScan),
+        preferred: this.getPreferredKeywordMatches(keywordScan),
+      };
 
       return parsedResult;
     } catch {
@@ -182,37 +266,52 @@ export class ResumeScorer {
   }
 
   /**
+   * Check if any required keyword was found in a category result
+   * @private
+   */
+  checkRequiredKeywordsInResult(categoryResult) {
+    const requiredMatches = categoryResult.details?.keywordDetection?.required;
+    if (!requiredMatches) return false;
+
+    return Object.values(requiredMatches).some((match) => match.found);
+  }
+
+  /**
    * Apply critical requirement gates to final score
+   * Uses dynamic required keywords from job settings
    */
   applyCriticalGates(categoryScores, overallScore) {
     let finalPercentage = overallScore.percentage;
     const penalties = [];
 
-    // Enhanced Shopify experience gate using keyword detection
+    const requiredKeywords = this.getRequiredKeywords();
     const workExperienceResult = categoryScores.workExperience;
     const skillsResult = categoryScores.skillsSpecialties;
 
-    // Check both work experience and skills for Shopify
-    const hasShopifyInWork =
-      workExperienceResult.details?.keywordDetection?.shopify?.found ||
-      workExperienceResult.details?.shopify_experience;
-    const hasShopifyInSkills = skillsResult.details?.keywordDetection?.shopify?.found;
+    // Only apply keyword gate if required keywords are defined
+    if (requiredKeywords.length > 0) {
+      const hasRequiredInWork = this.checkRequiredKeywordsInResult(workExperienceResult);
+      const hasRequiredInSkills = this.checkRequiredKeywordsInResult(skillsResult);
 
-    if (!hasShopifyInWork && !hasShopifyInSkills) {
-      finalPercentage = Math.min(finalPercentage, 40);
-      penalties.push('No Shopify experience detected by keyword scanner - capped at 40%');
-    } else if (workExperienceResult.score === 0 && hasShopifyInWork) {
-      // If keyword was detected but score is 0, there might be an issue
+      if (!hasRequiredInWork && !hasRequiredInSkills) {
+        finalPercentage = Math.min(finalPercentage, 40);
+        penalties.push(`Missing required skills (${requiredKeywords.join(', ')}) - capped at 40%`);
+      }
     }
 
-    // Check for language proficiency gate
+    // Check for language proficiency gate (only if language requirements are defined)
+    const languageRequirements = this.jobReqs.languages?.required?.requirements || [];
     const skillsSpecialtiesResult = categoryScores.skillsSpecialties;
-    if (
-      !skillsSpecialtiesResult.details?.language_evidence ||
-      skillsSpecialtiesResult.details.language_evidence.toLowerCase().includes('no evidence')
-    ) {
-      finalPercentage = Math.min(finalPercentage, 50);
-      penalties.push('Insufficient language proficiency evidence - capped at 50%');
+
+    if (languageRequirements.length > 0) {
+      if (
+        !skillsSpecialtiesResult.details?.language_evidence ||
+        skillsSpecialtiesResult.details.language_evidence.toLowerCase().includes('no evidence')
+      ) {
+        finalPercentage = Math.min(finalPercentage, 50);
+        const langNames = languageRequirements.map((r) => r.language).join(', ');
+        penalties.push(`Insufficient language proficiency evidence (${langNames}) - capped at 50%`);
+      }
     }
 
     return {

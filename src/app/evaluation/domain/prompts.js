@@ -1,16 +1,21 @@
 /**
  * Evaluation-specific prompt templates for resume scoring
+ * Prompts are parameterized to support any job description
  */
 class EvaluationPrompts {
   /**
    * Build self-evaluation LLM prompt
+   * @param {Object} selfEvaluation - Self-evaluation data from resume
+   * @param {Object} jobRequirements - Job requirements for dynamic prompts
    */
-  static buildSelfEvaluationPrompt(selfEvaluation) {
+  static buildSelfEvaluationPrompt(selfEvaluation, jobRequirements) {
+    const roleTitle = jobRequirements?.positionAppliedFor?.title || 'the position';
+
     return [
       {
         role: 'system',
-        content: `You are evaluating a candidate's self-evaluation for a Shopify Junior Developer role.
-        
+        content: `You are evaluating a candidate's self-evaluation for ${roleTitle}.
+
 Score 0-1 points considering:
 - Summary quality and clarity (0.4 points)
 - Career goals alignment with role (0.3 points)
@@ -39,58 +44,95 @@ Provide score and reasoning.`,
 
   /**
    * Build skills LLM prompt
+   * @param {Object} skillsSpecialties - Skills data from resume
+   * @param {Object} jobRequirements - Job requirements for dynamic prompts
+   * @param {Object} fullResumeData - Full resume data for context
    */
-  static buildSkillsPrompt(skillsSpecialties, jobRequirements, fullResumeData = null) {
-    const systemPrompt = `You are evaluating a candidate's skills for a Shopify Junior Developer role.
+  /**
+   * Format language requirements for prompt display
+   * @param {Array} requirements - Array of {language, level} objects
+   * @returns {string} Formatted language requirements string
+   */
+  static formatLanguageRequirements(requirements) {
+    if (!requirements || requirements.length === 0) {
+      return 'No specific language requirements';
+    }
+    return requirements
+      .filter((r) => r.language?.trim())
+      .map((r) => `${r.language} (${r.level})`)
+      .join(', ');
+  }
 
-Required skills: ${jobRequirements.skills.required.join(', ')}
-Preferred skills: ${jobRequirements.skills.preferred.join(', ')}
-Required language proficiency: C1 English or German with evidence
+  static buildSkillsPrompt(skillsSpecialties, jobRequirements, fullResumeData = null) {
+    const roleTitle = jobRequirements?.positionAppliedFor?.title || 'the position';
+    const requiredSkills = jobRequirements?.skills?.required?.join(', ') || 'relevant skills';
+    const preferredSkills = jobRequirements?.skills?.preferred?.join(', ') || 'additional skills';
+
+    // New per-language requirements structure
+    const langRequirements = jobRequirements?.languages?.required?.requirements || [];
+    const formattedLangs = this.formatLanguageRequirements(langRequirements);
+    const hasLangRequirements = langRequirements.length > 0;
+
+    // Build per-language evaluation instructions
+    let langEvalInstructions = '';
+    if (hasLangRequirements) {
+      const langList = langRequirements
+        .filter((r) => r.language?.trim())
+        .map((r) => `- ${r.language}: Minimum ${r.level} proficiency required`)
+        .join('\n');
+      langEvalInstructions = `
+REQUIRED LANGUAGES (evaluate each separately):
+${langList}
+
+For EACH required language, evaluate the candidate's proficiency.
+Score distribution: 0.3 points total for language requirements, divided equally among required languages.`;
+    } else {
+      langEvalInstructions = `
+No specific language requirements defined. Skip language evaluation and award 0.3 points by default.`;
+    }
+
+    const systemPrompt = `You are evaluating a candidate's skills for ${roleTitle}.
+
+Required skills: ${requiredSkills}
+Preferred skills: ${preferredSkills}
+Language requirements: ${formattedLangs}
 
 Score 0-2 points considering:
 - Required skills match (up to 0.9 points)
 - Preferred skills match (up to 0.4 points)
-- Language proficiency evidence (C1 English/German) (0.3 points)
+- Language proficiency evidence (0.3 points)
 - BRAINS signal: Deep technical understanding, complex problem-solving (0.2 points)
 - SELECTIVITY signal: Certifications, continuous learning, competitions (0.2 points)
+${langEvalInstructions}
 
 LANGUAGE PROFICIENCY EVALUATION:
 Look for explicit evidence in the languages field first:
-- Native or fluent proficiency = C2 level (exceeds C1 requirement, full 0.3 points)
-- Advanced proficiency = C1 level (meets requirement, full 0.3 points)
-- Intermediate proficiency = B2 level (below requirement, 0.1 points)
-- Basic proficiency = A1-B1 level (insufficient, 0 points)
+- Native or fluent proficiency = C2 level
+- Advanced proficiency = C1 level
+- Professional proficiency = B2-C1 level
+- Intermediate proficiency = B2 level
+- Basic proficiency = A1-B1 level
+
+Level comparison for scoring:
+- Candidate level >= Required level: Full points for that language
+- Candidate level one step below: Half points
+- Candidate level two or more steps below: No points
 
 If no explicit language data is provided, apply inference from full resume context:
 
-German Native Indicators (grant full 0.3 points if 2+ indicators present):
-- German name (surnames like Müller, Schmidt, Weber, etc.)
-- Abitur or German high school diploma
-- All education in Germany (universities, schools)
-- All/majority work experience in German companies
-- Lives in Germany with German address
-- Consistent presence in Germany throughout career
-
-English Native Indicators (grant full 0.3 points if 2+ indicators present):
-- English/Anglo name combined with education/work in English-speaking countries
-- High school diploma from UK/US/Canada/Australia
-- All education in English-speaking countries
-- All/majority work experience in English-speaking companies
-- Lives in English-speaking country
-
-SCORING LOGIC FOR LANGUAGES:
-- Native/Fluent in English or German: Full 0.3 points
-- Advanced (C1) in English or German: Full 0.3 points
-- 2+ Native indicators: Full 0.3 points
-- 1 Native indicator: 0.2 points
-- Intermediate proficiency: 0.1 points
-- Basic or no evidence: 0 points
+Native Language Indicators (can infer native proficiency if 2+ indicators present):
+- Name patterns consistent with language region
+- High school diploma from relevant country
+- All education in relevant country/region
+- All/majority work experience in relevant companies
+- Lives in relevant country/region
+- Consistent presence in relevant region throughout career
 
 Return JSON format:
 {
   "score": 0.X,
   "reasoning": "detailed explanation",
-  "language_evidence": "description of language proficiency evidence found",
+  "language_evidence": "description of language proficiency evidence found for each required language",
   "signals_found": {
     "brains": boolean,
     "selectivity": boolean
@@ -132,19 +174,27 @@ Provide score and reasoning.`;
 
   /**
    * Build experience LLM prompt
+   * @param {Object} workExperience - Work experience data from resume
+   * @param {Object} jobRequirements - Job requirements for dynamic prompts
    */
   static buildExperiencePrompt(workExperience, jobRequirements) {
+    const roleTitle = jobRequirements?.positionAppliedFor?.title || 'the position';
+    const mandatoryExp = jobRequirements?.experience?.mandatoryExperience || 'relevant';
+    const yearsRequired = jobRequirements?.experience?.yearsRequired ?? 0;
+    const relevantRoles =
+      jobRequirements?.experience?.relevantRoles?.join(', ') || 'relevant roles';
+
     return [
       {
         role: 'system',
-        content: `You are evaluating work experience for a Shopify Junior Developer role.
+        content: `You are evaluating work experience for ${roleTitle}.
 
 CRITICAL REQUIREMENTS:
-- Minimum 1 year Shopify experience (MANDATORY - return 0 if missing)
-- Relevant roles: ${jobRequirements.experience.relevantRoles.join(', ')}
+- Minimum ${yearsRequired} year(s) ${mandatoryExp} experience (MANDATORY - return 0 if missing)
+- Relevant roles: ${relevantRoles}
 
 Score 0-4 points considering:
-- Shopify experience (2.5 points - MANDATORY)
+- ${mandatoryExp} experience (2.5 points - MANDATORY)
 - Years of relevant experience (1 point)
 - HARDCORE signal: Ambitious projects, startup experience, high-pressure situations (0.2 points)
 - COMMUNICATION signal: Client-facing work, team leadership (0.2 points)
@@ -154,7 +204,7 @@ Return JSON format:
 {
   "score": 0.X,
   "reasoning": "detailed explanation",
-  "shopify_experience": "description of shopify experience found",
+  "core_experience": "description of ${mandatoryExp} experience found",
   "signals_found": {
     "hardcore": boolean,
     "communication": boolean,
@@ -167,23 +217,28 @@ Return JSON format:
         content: `Evaluate this work experience:
 ${JSON.stringify(workExperience, null, 2)}
 
-Provide score and reasoning. Return 0 if no Shopify experience is found.`,
+Provide score and reasoning. Return 0 if no ${mandatoryExp} experience is found.`,
       },
     ];
   }
 
   /**
    * Build basic info LLM prompt
+   * @param {Object} basicInformation - Basic info data from resume
+   * @param {Object} jobRequirements - Job requirements for dynamic prompts
    */
   static buildBasicInfoPrompt(basicInformation, jobRequirements) {
-    const systemPrompt = `You are evaluating basic information for a Shopify Junior Developer role.
+    const roleTitle = jobRequirements?.positionAppliedFor?.title || 'the position';
+    const preferredLocations = jobRequirements?.location?.preferred?.join(', ') || 'Any location';
+
+    const systemPrompt = `You are evaluating basic information for ${roleTitle}.
 
 Requirements:
-- Preferred locations: ${jobRequirements.location.preferred.join(', ')}
+- Preferred locations: ${preferredLocations}
 
 Score 0-1 points considering:
 - Contact completeness (name, email, phone; phone is weighted at 0.1 points) (0.6 points total)
-- Location alignment with DACH region (0.4 points)
+- Location alignment with preferred locations (0.4 points)
 
 Return JSON format:
 {
@@ -210,16 +265,24 @@ Provide score and reasoning.`;
 
   /**
    * Build education LLM prompt
+   * @param {Object} educationBackground - Education data from resume
+   * @param {Object} jobRequirements - Job requirements for dynamic prompts
    */
   static buildEducationPrompt(educationBackground, jobRequirements) {
+    const roleTitle = jobRequirements?.positionAppliedFor?.title || 'the position';
+    const preferredFields =
+      jobRequirements?.education?.preferredFields?.join(', ') || 'relevant fields';
+    const alternatives =
+      jobRequirements?.education?.alternatives?.join(', ') || 'alternative education';
+
     return [
       {
         role: 'system',
-        content: `You are evaluating education for a Shopify Junior Developer role.
+        content: `You are evaluating education for ${roleTitle}.
 
 Acceptable education:
-- Formal degrees: ${jobRequirements.education.preferredFields.join(', ')}
-- Alternatives: ${jobRequirements.education.alternatives.join(', ')}
+- Formal degrees: ${preferredFields}
+- Alternatives: ${alternatives}
 
 Score 0-2 points considering:
 - Relevant formal education (up to 1.3 points)
