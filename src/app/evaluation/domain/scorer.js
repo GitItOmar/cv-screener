@@ -28,6 +28,38 @@ export class ResumeScorer {
 
     // Configure keyword detector based on job requirements
     this.configureKeywordDetector();
+
+    // Cache dynamic max scores for this instance
+    this.maxScores = this.calculateDynamicMaxScores();
+  }
+
+  /**
+   * Calculate dynamic max scores based on experience requirements
+   * Entry-level positions (0 years) have reduced work experience weight
+   * @returns {Object} Max scores for each category
+   */
+  calculateDynamicMaxScores() {
+    const yearsRequired = this.jobReqs.experience?.yearsRequired ?? 0;
+
+    if (yearsRequired === 0) {
+      // Entry-level: reduce work experience weight, boost skills/education
+      return {
+        selfEvaluation: 1.5,
+        skillsSpecialties: 3.5,
+        workExperience: 1,
+        basicInformation: 1,
+        educationBackground: 3,
+      };
+    }
+
+    // Standard weights for experienced positions
+    return {
+      selfEvaluation: 1,
+      skillsSpecialties: 2,
+      workExperience: 4,
+      basicInformation: 1,
+      educationBackground: 2,
+    };
   }
 
   /**
@@ -103,23 +135,30 @@ export class ResumeScorer {
   }
 
   /**
-   * Score self-evaluation section (0-1 scale) with Passion & Communication signals
+   * Score self-evaluation section with Passion & Communication signals
    */
   async scoreSelfEvaluation(selfEvaluation) {
-    const prompt = EvaluationPrompts.buildSelfEvaluationPrompt(selfEvaluation, this.jobReqs);
+    const maxScore = this.maxScores.selfEvaluation;
+    const prompt = EvaluationPrompts.buildSelfEvaluationPrompt(
+      selfEvaluation,
+      this.jobReqs,
+      maxScore,
+    );
 
     try {
       const result = await this.evaluateWithLLM(prompt);
-      return this.parseLLMResponse(result, 1);
+      return this.parseLLMResponse(result, maxScore);
     } catch {
-      return this.getErrorResponse(1, 'Self-evaluation scoring failed');
+      return this.getErrorResponse(maxScore, 'Self-evaluation scoring failed');
     }
   }
 
   /**
-   * Score skills and specialties (0-2 scale) with Brains & Selectivity signals
+   * Score skills and specialties with Brains & Selectivity signals
    */
   async scoreSkillsSpecialties(skillsSpecialties, fullResumeData = null) {
+    const maxScore = this.maxScores.skillsSpecialties;
+
     // Scan for keywords (uses dynamic keywords from job settings)
     const skillsText = JSON.stringify(skillsSpecialties);
     const keywordScan = keywordDetector.scanText(skillsText);
@@ -128,11 +167,12 @@ export class ResumeScorer {
       skillsSpecialties,
       this.jobReqs,
       fullResumeData,
+      maxScore,
     );
 
     try {
       const result = await this.evaluateWithLLM(prompt);
-      const parsedResult = this.parseLLMResponse(result, 2);
+      const parsedResult = this.parseLLMResponse(result, maxScore);
 
       // Add keyword detection info using dynamic keywords
       parsedResult.details.keywordDetection = {
@@ -142,14 +182,16 @@ export class ResumeScorer {
 
       return parsedResult;
     } catch {
-      return this.getErrorResponse(2, 'Skills scoring failed');
+      return this.getErrorResponse(maxScore, 'Skills scoring failed');
     }
   }
 
   /**
-   * Score work experience (0-4 scale) with Hardcore, Communication & Diversity signals
+   * Score work experience with Hardcore, Communication & Diversity signals
    */
   async scoreWorkExperience(workExperience) {
+    const maxScore = this.maxScores.workExperience;
+
     // Scan for keywords (uses dynamic keywords from job settings)
     const workExpText = JSON.stringify(workExperience);
     const keywordScan = keywordDetector.scanText(workExpText);
@@ -162,7 +204,7 @@ export class ResumeScorer {
     if (!hasRequired && requiredKeywords.length > 0) {
       return {
         score: 0,
-        maxScore: 4,
+        maxScore,
         percentage: 0,
         reasoning: `No required experience detected (${requiredKeywords.join(', ')}) - critical requirement not met`,
         signals: {},
@@ -175,11 +217,11 @@ export class ResumeScorer {
       };
     }
 
-    const prompt = EvaluationPrompts.buildExperiencePrompt(workExperience, this.jobReqs);
+    const prompt = EvaluationPrompts.buildExperiencePrompt(workExperience, this.jobReqs, maxScore);
 
     try {
       const result = await this.evaluateWithLLM(prompt);
-      const parsedResult = this.parseLLMResponse(result, 4);
+      const parsedResult = this.parseLLMResponse(result, maxScore);
 
       // Add keyword detection info using dynamic keywords
       parsedResult.details.keywordDetection = {
@@ -189,35 +231,41 @@ export class ResumeScorer {
 
       return parsedResult;
     } catch {
-      return this.getErrorResponse(4, 'Work experience scoring failed');
+      return this.getErrorResponse(maxScore, 'Work experience scoring failed');
     }
   }
 
   /**
-   * Score basic information (0-1 scale)
+   * Score basic information
    */
   async scoreBasicInformation(basicInformation) {
-    const prompt = EvaluationPrompts.buildBasicInfoPrompt(basicInformation, this.jobReqs);
+    const maxScore = this.maxScores.basicInformation;
+    const prompt = EvaluationPrompts.buildBasicInfoPrompt(basicInformation, this.jobReqs, maxScore);
 
     try {
       const result = await this.evaluateWithLLM(prompt);
-      return this.parseLLMResponse(result, 1);
+      return this.parseLLMResponse(result, maxScore);
     } catch {
-      return this.getErrorResponse(1, 'Basic information scoring failed');
+      return this.getErrorResponse(maxScore, 'Basic information scoring failed');
     }
   }
 
   /**
-   * Score education background (0-2 scale) with Selectivity & Brains signals
+   * Score education background with Selectivity & Brains signals
    */
   async scoreEducationBackground(educationBackground) {
-    const prompt = EvaluationPrompts.buildEducationPrompt(educationBackground, this.jobReqs);
+    const maxScore = this.maxScores.educationBackground;
+    const prompt = EvaluationPrompts.buildEducationPrompt(
+      educationBackground,
+      this.jobReqs,
+      maxScore,
+    );
 
     try {
       const result = await this.evaluateWithLLM(prompt);
-      return this.parseLLMResponse(result, 2);
+      return this.parseLLMResponse(result, maxScore);
     } catch {
-      return this.getErrorResponse(2, 'Education scoring failed');
+      return this.getErrorResponse(maxScore, 'Education scoring failed');
     }
   }
 
@@ -373,16 +421,9 @@ export class ResumeScorer {
   }
 
   /**
-   * Get max score for category
+   * Get max score for category (uses dynamic weights)
    */
   getMaxScoreForCategory(category) {
-    const maxScores = {
-      selfEvaluation: 1,
-      skillsSpecialties: 2,
-      workExperience: 4,
-      basicInformation: 1,
-      educationBackground: 2,
-    };
-    return maxScores[category] || 1;
+    return this.maxScores[category] || 1;
   }
 }
